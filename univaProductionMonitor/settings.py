@@ -162,4 +162,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 APP_TOKEN = "ddab9b66-1a0d-4b7e-8b0c-476a0ee6cfc5"
 
 
-CSRF_TRUSTED_ORIGINS = ['http://django.febinosolutions.com','https://*.127.0.0.1','http://64.227.130.181:9002/','http://innod.febinosolutions.com','https://do.febinosolutions.com']
+CSRF_TRUSTED_ORIGINS = ['https://*.127.0.0.1','https://productionb.univa.cloud']
