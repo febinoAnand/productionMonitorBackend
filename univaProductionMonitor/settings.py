@@ -30,9 +30,11 @@ ALLOWED_HOSTS = ['*']
 djangoHTTPPort = 9002
 
 runserver.default_port = djangoHTTPPort
-mqttServer = "mqtt.univa.cloud"
-mqttPort = 1883
-mqttKeepAlive = 60
+
+
+MQTT_SERVER = 'mqtt.univa.cloud'
+MQTT_PORT = 1883
+MQTT_KEEP_ALIVE = 60
 
 # httpHost = "localhost"
 # httpPort = djangoHTTPPort
