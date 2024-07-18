@@ -130,8 +130,6 @@ class LogoutSerializer(serializers.Serializer):
 
 
 class ChangePasswordSerializer(serializers.Serializer):
-    app_token = serializers.CharField(required=True)
-    device_id = serializers.CharField(required=True)
     old_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
     confirm_password = serializers.CharField(required=True)
@@ -151,3 +149,17 @@ class WebLoginSerializer(serializers.Serializer):
 
 class WebLogoutSerializer(serializers.Serializer):
     token = serializers.CharField()
+
+class AdminChangePasswordSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField(required=True)
+    username = serializers.CharField(required=True)
+   
+    new_password = serializers.CharField(required=True, write_only=True)
+    confirm_password = serializers.CharField(required=True, write_only=True)
+    
+    
+
+    def validate(self, data):
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError("New password and confirm password do not match.")
+        return data

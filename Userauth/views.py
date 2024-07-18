@@ -39,7 +39,7 @@ import smsgateway.integrations as SMSgateway
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.contrib.auth import authenticate, login
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,IsAdminUser
 
 # Create your views here.
 
@@ -961,8 +961,9 @@ class LoginView(APIView):
                 return Response({
                     'status': 'OK',
                     'token': token.key,
-                    'message': 'Login successful'
-                })
+                    'message': 'Login successful',
+                    'user_expiry_time':str(UserAuthSetting.objects.first().all_user_expiry_time)
+                },status=status.HTTP_200_OK)
 
             return Response({'status': 'INVALID', 'message': 'Invalid Credentials'}, status=status.HTTP_200_OK)
         else:
@@ -1007,46 +1008,46 @@ class LogoutView(APIView):
 
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
+
     def post(self, request, *args, **kwargs):
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        app_token = serializer.validated_data.get('app_token')
-        device_id = serializer.validated_data.get('device_id')
+       
         old_password = serializer.validated_data.get('old_password')
         new_password = serializer.validated_data.get('new_password')
         header_token = request.headers.get('Authorization')
 
-        if app_token != settings.APP_TOKEN:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+        
 
-        if header_token is None:
-            return Response({'status': 'INVALID', 'message': 'Authorization header missing'}, status=status.HTTP_200_OK)
+        if not header_token or not header_token.startswith('Token '):
+            return Response({'status': 'INVALID', 'message': 'Authorization header missing or invalid'}, status=status.HTTP_400_BAD_REQUEST)
 
-        user_id = self.get_user_id_from_token(request, header_token)
+        token_key = header_token.split()[1]
 
-        if not user_id:
-            return Response({'status': 'INVALID', 'message': 'Unauthorized'}, status=status.HTTP_200_OK)
+        try:
+            token = Token.objects.get(key=token_key)
+        except Token.DoesNotExist:
+            return Response({'status': 'INVALID', 'message': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
 
-        user_detail = UserDetail.objects.filter(extUser_id=user_id, device_id=device_id).first()
-        if not user_detail:
-            return Response({'status': 'INVALID', 'message': 'Invalid device ID'}, status=status.HTTP_200_OK)
+        user_id = token.user_id
+
 
         try:
             user = User.objects.get(pk=user_id)
         except User.DoesNotExist:
-            return Response({"status": "INVALID", "message": "User does not exist"}, status=status.HTTP_200_OK)
+            return Response({"status": "INVALID", "message": "User does not exist"}, status=status.HTTP_400_BAD_REQUEST)
 
         if not check_password(old_password, user.password):
-            return Response({"status": "INVALID", "message": "Old password is incorrect"}, status=status.HTTP_200_OK)
+            return Response({"status": "INVALID", "message": "Old password is incorrect"}, status=status.HTTP_400_BAD_REQUEST)
 
         user.set_password(new_password)
         user.save()
 
         return Response({"status": "OK", "message": "Password updated successfully"}, status=status.HTTP_200_OK)
 
-    def get_user_id_from_token(self, request, token):
-        return request.session.get(token)  
+    def get_user_id_from_token(self, token):
+        return token.user_id
     
                                  #deleteuserview
 
@@ -1108,3 +1109,50 @@ class WebLogoutView(APIView):
             except Token.DoesNotExist:
                 return Response({'status': 'INVALID', 'message': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class AdminChangePasswordView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, *args, **kwargs):
+        serializer = AdminChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+    
+        user_id = serializer.validated_data.get('user_id')
+        username = serializer.validated_data.get('username')
+       
+        new_password = serializer.validated_data.get('new_password')
+        header_token = request.headers.get('Authorization')
+        
+
+
+        if not header_token or not header_token.startswith('Token '):
+            return Response({'status': 'INVALID', 'message': 'Authorization header missing or invalid'}, status=status.HTTP_400_BAD_REQUEST)
+
+        token_key = header_token.split()[1]
+
+
+
+
+        try:
+            token = Token.objects.get(key=token_key)
+        except Token.DoesNotExist:
+            return Response({'status': 'INVALID', 'message': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user_id_from_token = token.user_id
+        
+        if not request.user.is_superuser:
+            return Response({'status': 'UNAUTHORIZED', 'message': 'Only admins can change user passwords'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({'status': 'INVALID', 'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+       
+
+        user.set_password(new_password)
+        user.save()
+
+        return Response({'status': 'OK', 'message': 'Password updated successfully'}, status=status.HTTP_200_OK)

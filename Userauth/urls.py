@@ -24,7 +24,8 @@ urlpatterns = [
     path('userlogout/', LogoutView.as_view(), name='logout'),
     path('delete-user/<int:user_id>/', DeleteUserView.as_view(), name='delete-user'),
     path('weblogin/', WebLoginView.as_view(), name='weblogin'),
-    path('weblogout/', WebLogoutView.as_view(), name='weblogout')
+    path('weblogout/', WebLogoutView.as_view(), name='weblogout'),
+    path('change-password/', AdminChangePasswordView.as_view(), name='admin-change-password'),
 ]
 
 
