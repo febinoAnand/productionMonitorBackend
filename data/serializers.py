@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import RawData, ProblemData, LastProblemData
+from .models import RawData, ProblemData, LastProblemData,LogData, DeviceData, MachineData, ProductionData
 from events.serializers import *
 from devices.serializers import *
 
@@ -59,3 +59,23 @@ class LastProblemDataSerializer(serializers.ModelSerializer):
 # class rawGetMethodeSerializer(serializers.Serializer):
 #     dateTime = serializers.DateTimeField()
 #     data = serializers.CharField()
+
+class LogDataSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LogData
+        fields = ['date', 'time', 'received_data',  'protocol',  'topic_api', 'unique_id' ]
+
+class DeviceDataSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DeviceData
+        fields = ['date', 'time',  'data', 'device_id', 'protocol', 'topic_api', 'create_date_time', 'update_date_time', 'log_data_id' ]
+
+class MachineDataSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MachineData
+        fields = [  'date', 'time',  'machine_id', 'data', 'device_id', 'create_date_time', 'update_date_time', 'data_id']
+
+class ProductionDataSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductionData
+        fields = ['date', 'time', 'shift_id', 'shift_name', 'shift_start_time', 'shift_end_time', 'target_production', 'machine_id', 'machine_name', 'production_count', 'data_id']

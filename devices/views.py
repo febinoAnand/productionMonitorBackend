@@ -12,7 +12,9 @@ from .serializers import MachineSerializer, \
     UnRegisteredSerializer, \
     VerifyDeviceSerializer,\
     GetTokenSerializer,\
-    UnRegisteredGetMethodSerializer
+    UnRegisteredGetMethodSerializer,\
+    MachineGroupSerializer,\
+    ShiftTimingsSerializer
 from django.shortcuts import render
 from django.views import View
 from django.http import HttpResponse
@@ -234,3 +236,11 @@ def generateSixDigitOTP():
 
 def generate_token():
     return binascii.hexlify(os.urandom(20)).decode()
+
+class MachineGroupViewSet(viewsets.ModelViewSet):
+    queryset = MachineGroup.objects.all()
+    serializer_class = MachineGroupSerializer
+
+class ShiftTimingsViewSet(viewsets.ModelViewSet):
+    queryset = ShiftTimings.objects.all()
+    serializer_class = ShiftTimingsSerializer

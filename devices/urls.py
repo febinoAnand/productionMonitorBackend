@@ -1,6 +1,6 @@
 from django.urls import path,include
 from rest_framework import routers
-from .views import MachineViewSet, DeviceViewSet, RFIDViewSet, UnRegisteredViewSet, DeviceVerification, TokenAuthentication, UnRegisterViewSetPostMethod
+from .views import MachineViewSet, DeviceViewSet, RFIDViewSet, UnRegisteredViewSet, DeviceVerification, TokenAuthentication, UnRegisterViewSetPostMethod, MachineGroupViewSet, ShiftTimingsViewSet
 
 
 
@@ -9,6 +9,8 @@ router.register('machine',MachineViewSet)
 router.register('device',DeviceViewSet)
 # router.register('rfid',RFIDViewSet)
 router.register('unregister', UnRegisteredViewSet)
+router.register('machinegroup', MachineGroupViewSet)
+router.register('shifttimings', ShiftTimingsViewSet)
 
 urlpatterns = [
     path('',include(router.urls)),

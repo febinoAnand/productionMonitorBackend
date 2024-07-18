@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import MqttSettings,UART
+from .models import MqttSettings,UART,HttpsSettings
 
 class MQTTSerializer(serializers.ModelSerializer):
     class Meta:
@@ -9,4 +9,9 @@ class MQTTSerializer(serializers.ModelSerializer):
 class UARTSerializer(serializers.ModelSerializer):
     class Meta:
         model = UART
+        fields = '__all__'
+
+class HttpsSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HttpsSettings
         fields = '__all__'

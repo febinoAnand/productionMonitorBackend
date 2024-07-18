@@ -5,7 +5,11 @@ from .views import \
     LastProblemViewSet, \
     RawGetMethod,\
     LiveDataViewset,\
-    MachineLiveDataViewset
+    MachineLiveDataViewset,\
+    LogDataViewSet, \
+    DeviceDataViewSet, \
+    MachineDataViewSet, \
+    ProductionDataViewSet
 
 from rest_framework import routers
 
@@ -14,7 +18,10 @@ router = routers.DefaultRouter()
 router.register('problem',ProblemViewSet)
 router.register('lastproblem',LastProblemViewSet)
 router.register('', RawDataViewset)
-
+router.register('logdata', LogDataViewSet)
+router.register('devicedata', DeviceDataViewSet)
+router.register('machinedata', MachineDataViewSet)
+router.register('productiondata', ProductionDataViewSet)
 
 
 urlpatterns = [

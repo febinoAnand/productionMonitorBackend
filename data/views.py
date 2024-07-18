@@ -1,8 +1,8 @@
 import json
 from rest_framework import viewsets, status, views
 from rest_framework.response import Response
-from .models import RawData, ProblemData, LastProblemData
-from .serializers import RawSerializer, ProblemDataSerializer, LastProblemDataSerializer, RawSerializerWithDateTime
+from .models import RawData, ProblemData, LastProblemData, LogData, DeviceData, MachineData, ProductionData
+from .serializers import RawSerializer, ProblemDataSerializer, LastProblemDataSerializer, RawSerializerWithDateTime, LogDataSerializer, DeviceDataSerializer, MachineDataSerializer, ProductionDataSerializer
 from events.models import Event, EventGroup
 from events.serializers import EventSerializer
 from devices.models import DeviceDetails, MachineDetails, Token
@@ -264,3 +264,18 @@ class LastProblemViewSet(viewsets.ModelViewSet):
     serializer_class = LastProblemDataSerializer
     queryset = LastProblemData.objects.all().order_by('-pk')
 
+class LogDataViewSet(viewsets.ModelViewSet):
+    queryset = LogData.objects.all()
+    serializer_class = LogDataSerializer
+
+class DeviceDataViewSet(viewsets.ModelViewSet):
+    queryset = DeviceData.objects.all()
+    serializer_class = DeviceDataSerializer
+
+class MachineDataViewSet(viewsets.ModelViewSet):
+    queryset = MachineData.objects.all()
+    serializer_class = MachineDataSerializer
+
+class ProductionDataViewSet(viewsets.ModelViewSet):
+    queryset = ProductionData.objects.all()
+    serializer_class = ProductionDataSerializer

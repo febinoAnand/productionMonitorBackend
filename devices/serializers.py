@@ -66,3 +66,12 @@ class GetTokenSerializer(serializers.Serializer):
     deviceID = serializers.CharField()
     devicePassword = serializers.CharField()
 
+class MachineGroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MachineGroup
+        fields = ['machine_list', 'group_name']
+
+class ShiftTimingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShiftTimings
+        fields = ['_id', 'start_time', 'end_time', 'shift_name', 'create_date_time', 'update_date_time']
