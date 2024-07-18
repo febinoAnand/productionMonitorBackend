@@ -24,12 +24,12 @@ from django.core import serializers
 # Create your views here.
 class MachineViewSet(viewsets.ModelViewSet):
     serializer_class = MachineSerializer
-    queryset = Machine.objects.all()
+    queryset = MachineDetails.objects.all()
     schema = None
 
 
     def list(self,request, *args,**kwargs):
-        queryset = Machine.objects.all().order_by("device__deviceID")
+        queryset = MachineDetails.objects.all().order_by("device__deviceID")
         serializers = MachineSerializer(queryset,many=True)
         # res = {"message":"working fine"}
         return Response(serializers.data,status=status.HTTP_200_OK)
@@ -44,9 +44,9 @@ class MachineViewSet(viewsets.ModelViewSet):
         reqData = request.data
         # res = {"message":"working fine"}
         # hmiID = reqData["deviceID"]
-        DeviceData = Device.objects.get(id=reqData["Device"]["id"])
+        DeviceData = DeviceDetails.objects.get(id=reqData["Device"]["id"])
         # print (hmiID)
-        Machine.objects.create(machineID = reqData['machineID'],
+        MachineDetails.objects.create(machineID = reqData['machineID'],
                                name = reqData['name'],
                                manufacture = reqData['manufacture'],
                                model = reqData['model'],
@@ -58,12 +58,12 @@ class MachineViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         # print (request.data)
         res = request.data
-        machine = Machine.objects.get(id=res["id"])
+        machine = MachineDetails.objects.get(id=res["id"])
         machine.machineID=res["machineID"]
         machine.model = res["model"]
         machine.name = res["name"]
         machine.line = res["line"]
-        machine.device = Device.objects.get(id=res["Device"]["id"])
+        machine.device = DeviceDetails.objects.get(id=res["Device"]["id"])
         machine.manufacture = res["manufacture"]
         machine.save()
         return Response(res,status=status.HTTP_200_OK)
@@ -71,7 +71,7 @@ class MachineViewSet(viewsets.ModelViewSet):
 
 class DeviceViewSet(viewsets.ModelViewSet):
     serializer_class = DeviceSerializer
-    queryset = Device.objects.all()
+    queryset = DeviceDetails.objects.all()
     schema = None
 
 class RFIDViewSet(viewsets.ModelViewSet):
@@ -134,7 +134,7 @@ class UnRegisterViewSetPostMethod(views.APIView):
 
 
         try:
-            if Device.objects.filter(deviceID = res["deviceID"]).exists():
+            if DeviceDetails.objects.filter(deviceID = res["deviceID"]).exists():
                 jsonResponse = {"deviceID":res["deviceID"],"staus":"Device Already Registered"}
             else:
                 UnRegisteredDevice.objects.create(
@@ -164,7 +164,7 @@ class TokenAuthentication(views.APIView):
         jsonResponse = {"status":"Not a Valid JSON"}
         if verifiyTokenSerializer.is_valid():
             try:
-                currentDevice = Device.objects.get(deviceID = res['deviceID'])
+                currentDevice = DeviceDetails.objects.get(deviceID = res['deviceID'])
             except Exception as e:
                 jsonResponse = {"status":"Devive ID not Registered"}
                 return Response(jsonResponse, status=status.HTTP_201_CREATED)
@@ -196,7 +196,7 @@ class DeviceVerification(views.APIView):
             if currentUnRegisteredDevice is not None and str(currentUnRegisteredDevice.OTP) == res["OTP"]:
 
 
-                registerDevice = Device.objects.create(
+                registerDevice = DeviceDetails.objects.create(
                     deviceID = currentUnRegisteredDevice.deviceID,
                     model = currentUnRegisteredDevice.model,
                     hardwareVersion = currentUnRegisteredDevice.hardwareVersion,

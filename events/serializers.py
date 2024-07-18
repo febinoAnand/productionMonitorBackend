@@ -53,5 +53,5 @@ class EventGroupsSerializerShort(serializers.ModelSerializer):
 class MachineEventsGroupSerializer(serializers.ModelSerializer):
     processList = EventGroupsSerializerShort(source='machinesList',many=True)
     class Meta:
-        model = Machine
+        model = MachineDetails
         fields = ('machineID','name','model','processList')

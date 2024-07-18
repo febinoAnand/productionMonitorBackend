@@ -5,7 +5,7 @@ from .models import RawData, ProblemData, LastProblemData
 from .serializers import RawSerializer, ProblemDataSerializer, LastProblemDataSerializer, RawSerializerWithDateTime
 from events.models import Event, EventGroup
 from events.serializers import EventSerializer
-from devices.models import Device, Machine, Token
+from devices.models import DeviceDetails, MachineDetails, Token
 from devices.serializers import MachineSerializer, MachineWithoutDeviceSerializer, DeviceSerializer
 import datetime
 from django.core import serializers
@@ -34,8 +34,8 @@ class MachineLiveDataViewset(views.APIView):
         # print (request.GET['machineid'])
         machinejson = {}
         machineID = request.GET['machineid']
-        machineDetails = Machine.objects.get(machineID = machineID)
-        deviceDetails = Device.objects.get(deviceID = machineDetails.device.deviceID)
+        machineDetails = MachineDetails.objects.get(machineID = machineID)
+        deviceDetails = DeviceDetails.objects.get(deviceID = machineDetails.device.deviceID)
         activeProblemDetails = ProblemData.objects.filter(machineID = machineDetails,endTime=None).order_by('-pk')
         problemHistoryDetails = ProblemData.objects.filter(machineID = machineDetails).exclude(endTime=None).order_by('-pk')
 
@@ -73,7 +73,7 @@ class LiveDataViewset(views.APIView):
     schema = None
     def get(self,request):
         responseArray = []
-        machines = Machine.objects.all()
+        machines = MachineDetails.objects.all()
         for machine in machines:
             # print (machine)
             machineEvent = {}
@@ -127,8 +127,8 @@ class RawDataViewset(viewsets.ModelViewSet):
             currentToken = Token.objects.get(token = tokenString)
             currentEvent = Event.objects.get(eventID=jsondata["eventID"])
             currentGroup = EventGroup.objects.get(groupID = jsondata['eventGroupID'])
-            currentMachine = Machine.objects.get(machineID = jsondata['machineID'])
-            currentDevice = Device.objects.get(deviceID=currentToken.deviceID)
+            currentMachine = MachineDetails.objects.get(machineID = jsondata['machineID'])
+            currentDevice = DeviceDetails.objects.get(deviceID=currentToken.deviceID)
 
 
             # for event in currentGroup.events:

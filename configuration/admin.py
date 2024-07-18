@@ -1,26 +1,14 @@
 from django.contrib import admin
-from .models import UART, MQTT, Port
+from .models import UART, MqttSettings, Port,HttpsSettings
 
-# Register your models here.
-# admin.site.register(UART)
-# admin.site.register(MQTT)
-admin.site.register(Port)
+class MqttSettingsAdmin(admin.ModelAdmin):
+    list_display = ('server_name_alias', 'host', 'port', 'username', 'qos')
+    search_fields = ('server_name_alias', 'host', 'username')
 
-@admin.register(MQTT)
-class MQTTModelAdmin(admin.ModelAdmin):
-    list_display = ['host','port','username','password']
-    def has_add_permission(self, request):
-        # if there's already an entry, do not allow adding
-        count = MQTT.objects.all().count()
-        if count == 0:
-            return True
-        return False
+class HttpsSettingsAdmin(admin.ModelAdmin):
+    list_display = ('api_path', 'auth_token')
+    search_fields = ('api_path',)
 
-@admin.register(UART)
-class UARTModelAdmin(admin.ModelAdmin):
-    list_display = ["comport","baudrate",'parity','databit','stopbit']
-    def has_add_permission(self, request):
-        count = UART.objects.all().count()
-        if count == 0:
-            return True
-        return False
+admin.site.register(MqttSettings, MqttSettingsAdmin)
+admin.site.register(HttpsSettings, HttpsSettingsAdmin)
+

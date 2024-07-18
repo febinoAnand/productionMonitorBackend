@@ -5,18 +5,7 @@ from .models import *
 
 # admin.site.register(Token)
 
-class DeviceAdmin(admin.ModelAdmin):
-    list_display = ["deviceID","model","hardwareVersion","softwareVersion"]
-    readonly_fields = ["deviceID"]
-    def has_add_permission(self, request):
-        return False
 
-admin.site.register(Device,DeviceAdmin)
-
-
-class MachineAdmin(admin.ModelAdmin):
-    list_display = ["machineID","name","manufacture","model","line"]
-admin.site.register(Machine,MachineAdmin)
 
 # class RFIDAdmin(admin.ModelAdmin):
 #     list_display = ["rfid","rfidUser"]
@@ -49,3 +38,24 @@ admin.site.register(Token, TokenAdmin)
 
 
 
+class DeviceDetailsAdmin(admin.ModelAdmin):
+    list_display = ('device_name', 'device_token', 'hardware_version', 'software_version', 'protocol', 'create_date_time')
+    search_fields = ('device_name', 'device_token', 'protocol')
+
+class MachineDetailsAdmin(admin.ModelAdmin):
+    list_display = ('machine_id', 'line', 'manufacture', 'year', 'device', 'create_date_time')
+    search_fields = ('machine_id', 'line', 'manufacture', 'year')
+
+class MachineGroupAdmin(admin.ModelAdmin):
+    list_display = ('group_name',)
+    search_fields = ('group_name',)
+    filter_horizontal = ('machine_list',)  
+
+class ShiftTimingsAdmin(admin.ModelAdmin):
+    list_display = ('shift_name', 'start_time', 'end_time', 'create_date_time')
+    search_fields = ('shift_name',)
+
+admin.site.register(DeviceDetails, DeviceDetailsAdmin)
+admin.site.register(MachineDetails, MachineDetailsAdmin)
+admin.site.register(MachineGroup, MachineGroupAdmin)
+admin.site.register(ShiftTimings, ShiftTimingsAdmin)

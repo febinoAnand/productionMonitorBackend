@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 # Create your models here.
-from devices.models import Machine
+from devices.models import MachineDetails
 
 
 class ProblemCode(models.Model):
@@ -90,7 +90,7 @@ class EventGroup(models.Model):
     groupID = models.CharField(max_length=15,blank=False,unique=True)
     groupName = models.CharField(max_length=50,blank=False,null=True)
     events = models.ManyToManyField(Event, related_name='eventGroup')
-    machines = models.ManyToManyField(Machine,related_name='machinesList')
+    machines = models.ManyToManyField(MachineDetails,related_name='machinesList')
 
     def selectedEvents(self):
         return ", \n".join([str(p)+"--->["+str(p.button.buttonName)+", "+p.problem.problemName+", "+p.indicator.indicatorColorName+"]" for p in self.events.all()])
