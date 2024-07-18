@@ -48,7 +48,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'mqttConnection',
     'configuration',
     'devices',
     'data',
@@ -59,6 +58,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'Userauth',
     'rest_framework.authtoken',
+    'mqttConnection',
 
     # 'django_extensions',
 ]
