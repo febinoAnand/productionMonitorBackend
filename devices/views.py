@@ -27,48 +27,54 @@ from django.core import serializers
 class MachineViewSet(viewsets.ModelViewSet):
     serializer_class = MachineSerializer
     queryset = MachineDetails.objects.all()
-    schema = None
 
+    def list(self, request, *args, **kwargs):
+        queryset = MachineDetails.objects.all().order_by("device__device_token")
+        serializer = MachineSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def list(self,request, *args,**kwargs):
-        queryset = MachineDetails.objects.all().order_by("device__deviceID")
-        serializers = MachineSerializer(queryset,many=True)
-        # res = {"message":"working fine"}
-        return Response(serializers.data,status=status.HTTP_200_OK)
-    # def machine123(self,request,pk=None):
-    #     res = {"message":"working fine"}
-    #     return Response(res,status=status.HTTP_200_OK)
-
-
-
-    def create(self,request,pk=None):
-        # print(request.data)
-        reqData = request.data
-        # res = {"message":"working fine"}
-        # hmiID = reqData["deviceID"]
-        DeviceData = DeviceDetails.objects.get(id=reqData["Device"]["id"])
-        # print (hmiID)
-        MachineDetails.objects.create(machineID = reqData['machineID'],
-                               name = reqData['name'],
-                               manufacture = reqData['manufacture'],
-                               model = reqData['model'],
-                               line = reqData['line'],
-                               device = DeviceData)
-
-        return Response(reqData,status=status.HTTP_201_CREATED)
+    def create(self, request, *args, **kwargs):
+        req_data = request.data
+        device_id = req_data.get('Device', {}).get('id')
+        
+        try:
+            device = DeviceDetails.objects.get(id=device_id)
+            machine = MachineDetails.objects.create(
+                machine_id=req_data['machine_id'], 
+                machine_name=req_data['machine_name'],
+                line=req_data['line'],
+                manufacture=req_data['manufacture'],
+                year=req_data['year'],
+                device=device
+            )
+            serializer = MachineSerializer(machine)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except DeviceDetails.DoesNotExist:
+            return Response({"error": "Device not found"}, status=status.HTTP_404_NOT_FOUND)
 
     def update(self, request, *args, **kwargs):
-        # print (request.data)
-        res = request.data
-        machine = MachineDetails.objects.get(id=res["id"])
-        machine.machineID=res["machineID"]
-        machine.model = res["model"]
-        machine.name = res["name"]
-        machine.line = res["line"]
-        machine.device = DeviceDetails.objects.get(id=res["Device"]["id"])
-        machine.manufacture = res["manufacture"]
-        machine.save()
-        return Response(res,status=status.HTTP_200_OK)
+        res_data = request.data
+        machine_id = res_data.get('id')
+        
+        try:
+            machine = MachineDetails.objects.get(id=machine_id)
+            device_id = res_data.get('Device', {}).get('id')
+            device = DeviceDetails.objects.get(id=device_id)
+
+            machine.machine_id = res_data.get('machine_id', machine.machine_id)
+            machine.machine_name = res_data.get('machine_name', machine.machine_name)
+            machine.line = res_data.get('line', machine.line)
+            machine.manufacture = res_data.get('manufacture', machine.manufacture)
+            machine.year = res_data.get('year', machine.year)
+            machine.device = device
+            
+            machine.save()
+            serializer = MachineSerializer(machine)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except MachineDetails.DoesNotExist:
+            return Response({"error": "Machine not found"}, status=status.HTTP_404_NOT_FOUND)
+        except DeviceDetails.DoesNotExist:
+            return Response({"error": "Device not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
 class DeviceViewSet(viewsets.ModelViewSet):

@@ -10,10 +10,9 @@ class DeviceSerializer(serializers.ModelSerializer):
 
 
 class MachineSerializer(serializers.ModelSerializer):
-    device = DeviceSerializer()
     class Meta:
         model = MachineDetails
-        fields = ('id','machineID','name','manufacture','model','line','device')
+        fields = ['id', 'machine_id', 'machine_name', 'manufacture', 'line', 'device']
 
 
 class MachineWithoutDeviceSerializer(serializers.ModelSerializer):
