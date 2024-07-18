@@ -19,10 +19,30 @@ class UART(models.Model):
     def __str__(self):
         return self.comport.portname
 
-class MQTT(models.Model):
-    host = models.CharField(max_length=50,blank=False)
+    
+class MqttSettings(models.Model):
+    _id = models.AutoField(primary_key=True)
+    server_name_alias = models.CharField(max_length=45, blank=False)
+    host = models.CharField(max_length=45, blank=False)
     port = models.IntegerField(blank=False)
-    username = models.CharField(max_length=40)
-    password = models.CharField(max_length=40)
+    username = models.CharField(max_length=45, blank=False)
+    password = models.CharField(max_length=45, blank=False)
+    qos = models.IntegerField(default=0, blank=False)
+
     def __str__(self):
-        return self.host
+        return self.server_name_alias
+
+    class Meta:
+        verbose_name = "Mqtt"
+        verbose_name_plural = "Mqtt"
+
+class HttpsSettings(models.Model):
+    auth_token = models.CharField(max_length=100, null=True, blank=True)
+    api_path = models.CharField(max_length=100, null=True, blank=True)
+
+    def __str__(self):
+        return self.api_path if self.api_path else "No API Path"
+
+    class Meta:
+        verbose_name = "Https"
+        verbose_name_plural = "Https"

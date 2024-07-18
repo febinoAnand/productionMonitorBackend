@@ -10,27 +10,54 @@ from django.utils.translation import gettext_lazy as _
 
 # Create your models here.
 
-class Device(models.Model):
-    deviceID = models.CharField(max_length=15,blank=False,unique=True,default=uuid.uuid1)
-    model = models.CharField(max_length=10)
-    hardwareVersion = models.CharField(max_length=10)
-    softwareVersion = models.CharField(max_length=10)
-    # token = models.CharField(max_length=30)
-    devicePassword = models.CharField(max_length=20)
+class DeviceDetails(models.Model):
+    device_name = models.CharField(max_length=45, blank=False)
+    device_token = models.CharField(max_length=100, blank=False)
+    hardware_version = models.CharField(max_length=10, null=True, blank=True)
+    software_version = models.CharField(max_length=10, null=True, blank=True)
+    create_date_time = models.DateTimeField(auto_now_add=True)
+    update_date_time = models.DateTimeField(auto_now=True)
+    protocol = models.CharField(max_length=10, blank=False)
+    pub_topic = models.CharField(max_length=100, null=True, blank=True)
+    sub_topic = models.CharField(max_length=100, null=True, blank=True)
+    api_path = models.CharField(max_length=100, null=True, blank=True)
+    
 
     def __str__(self):
-        return self.deviceID
+        return self.device_name
+    
 
-class Machine(models.Model):
-    machineID = models.CharField(max_length=15,unique=True, blank=False, default=uuid.uuid1)
-    name = models.CharField(max_length=50,blank=False)
-    manufacture = models.CharField(max_length=50)
-    model = models.CharField(max_length=10)
-    line = models.CharField(max_length=10)
-    image = models.ImageField(upload_to='images/machineimages',blank=True)
-    device = models.ForeignKey(Device, on_delete=models.CASCADE)
+class MachineDetails(models.Model):
+    machine_name = models.CharField(max_length=45, blank=False,default="none")
+    machine_id = models.CharField(max_length=15, unique=True, blank=False, default=uuid.uuid1)
+    line = models.CharField(max_length=30, null=True, blank=True)
+    manufacture = models.CharField(max_length=45, null=True, blank=True)
+    year = models.CharField(max_length=30, null=True, blank=True)
+    device = models.ForeignKey(DeviceDetails, on_delete=models.CASCADE)
+    create_date_time = models.DateTimeField(auto_now_add=True)
+    update_date_time = models.DateTimeField(auto_now=True)
+
     def __str__(self):
-        return self.machineID
+        return self.machine_id
+    
+
+class MachineGroup(models.Model):
+    machine_list = models.ManyToManyField(MachineDetails)
+    group_name = models.CharField(max_length=45, blank=False)
+
+    def __str__(self):
+        return self.group_name
+
+class ShiftTimings(models.Model):
+    _id = models.AutoField(primary_key=True)
+    start_time = models.TimeField(blank=False)
+    end_time = models.TimeField(blank=False)
+    shift_name = models.CharField(max_length=45, blank=False)
+    create_date_time = models.DateTimeField(auto_now_add=True)
+    update_date_time = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.shift_name
 
 class RFID(models.Model):
     rfid = models.CharField(max_length=50,blank=False,unique=True,default=uuid.uuid1)
@@ -50,7 +77,7 @@ class UnRegisteredDevice(models.Model):
     createdAt = models.DateTimeField(auto_now_add=True)
 
 class Token(models.Model):
-    deviceID = models.OneToOneField(Device,blank=False,null=False,on_delete=models.CASCADE,related_name="deviceToken")
+    deviceID = models.OneToOneField(DeviceDetails,blank=False,null=False,on_delete=models.CASCADE,related_name="deviceToken")
     token = models.CharField(max_length=30)
     createdAt = models.DateTimeField(auto_now_add=True)
 

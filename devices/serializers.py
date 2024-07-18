@@ -5,20 +5,20 @@ from .models import *
 
 class DeviceSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Device
+        model = DeviceDetails
         fields = ('id','deviceID','model','hardwareVersion','softwareVersion')
 
 
 class MachineSerializer(serializers.ModelSerializer):
     device = DeviceSerializer()
     class Meta:
-        model = Machine
+        model = MachineDetails
         fields = ('id','machineID','name','manufacture','model','line','device')
 
 
 class MachineWithoutDeviceSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Machine
+        model = MachineDetails
         fields = ('id','machineID','name','manufacture','model','line')
     # def create(self, validated_data):
     #     print("trying to create")

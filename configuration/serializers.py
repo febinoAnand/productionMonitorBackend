@@ -1,9 +1,9 @@
 from rest_framework import serializers
-from .models import MQTT,UART
+from .models import MqttSettings,UART
 
 class MQTTSerializer(serializers.ModelSerializer):
     class Meta:
-        model = MQTT
+        model = MqttSettings
         fields = '__all__'
 
 class UARTSerializer(serializers.ModelSerializer):
