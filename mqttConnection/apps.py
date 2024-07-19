@@ -1,10 +1,9 @@
 from django.apps import AppConfig
 
-
-class MqttconnectionConfig(AppConfig):
+class MqttConnectionConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'mqttConnection'
 
     def ready(self):
-        from mqttConnection import mqtt
-        mqtt.client.loop_start()
+        import mqttConnection.mqtt as mqtt
+        mqtt.start_mqtt_client()
