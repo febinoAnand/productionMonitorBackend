@@ -6,4 +6,7 @@ class MqttConnectionConfig(AppConfig):
 
     def ready(self):
         import mqttConnection.mqtt as mqtt
+        
         mqtt.start_mqtt_client()
+
+        
