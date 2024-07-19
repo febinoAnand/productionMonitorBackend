@@ -1,9 +1,7 @@
 import paho.mqtt.client as mqtt
 import json
 import datetime
-import uuid
-from django.conf import settings
-from django.db.models import ObjectDoesNotExist
+from configuration.models import MqttSettings
 from data.models import LogData, DeviceData, MachineData
 from devices.models import DeviceDetails, MachineDetails
 
@@ -155,7 +153,7 @@ def on_message(mqtt_client, userdata, msg):
             except DeviceDetails.DoesNotExist:
                 response = {
                     "status": "DEVICE NOT FOUND",
-                    "message": "Device not found with given token",
+                    "message": "Device not found",
                     "timestamp": timestamp,
                     "device_token": device_token
                 }
@@ -188,7 +186,7 @@ def on_message(mqtt_client, userdata, msg):
                 publish_response(mqtt_client, msg.topic, response, is_error=True)
                 print('Machine ID mismatch')
                 return
-            #step:4 save machine data
+            #step:5 save machine data
             try:
                 machine_data = MachineData(
                     date=message_date,
@@ -200,7 +198,7 @@ def on_message(mqtt_client, userdata, msg):
                 )
                 machine_data.save()
                 print(f'Saved machine data to database: {machine_data}')
-            #step:4 save device data
+            #step:6 save device data
                 device_data = DeviceData(
                     date=message_date,
                     time=message_time,
@@ -253,15 +251,25 @@ def on_message(mqtt_client, userdata, msg):
 
 
 
+
 mqtt_client = mqtt.Client()
 
+def get_mqtt_settings():
+    try:
+        mqtt_settings = MqttSettings.objects.get()
+        return mqtt_settings
+    except MqttSettings.DoesNotExist:
+        raise ValueError("MQTT settings not found in the database.")
+
 def start_mqtt_client():
+
+    mqtt_settings = get_mqtt_settings()
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
-    mqtt_client.username_pw_set("", "")
+    mqtt_client.username_pw_set(mqtt_settings.username, mqtt_settings.password)
     mqtt_client.connect(
-        host=settings.MQTT_SERVER,
-        port=settings.MQTT_PORT,
-        keepalive=settings.MQTT_KEEP_ALIVE
+        host=mqtt_settings.host,
+        port=mqtt_settings.port,
+        keepalive=mqtt_settings.keepalive
     )
     mqtt_client.loop_start()
