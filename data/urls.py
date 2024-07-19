@@ -22,7 +22,7 @@ router.register('logdata', LogDataViewSet)
 router.register('devicedata', DeviceDataViewSet)
 router.register('machinedata', MachineDataViewSet)
 router.register('productiondata', ProductionDataViewSet)
-router.register('', RawDataViewset)
+router.register('raw', RawDataViewset)
 
 urlpatterns = [
     path('livedata',LiveDataViewset.as_view()),
