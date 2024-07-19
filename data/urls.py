@@ -17,12 +17,12 @@ from rest_framework import routers
 router = routers.DefaultRouter()
 router.register('problem',ProblemViewSet)
 router.register('lastproblem',LastProblemViewSet)
-router.register('', RawDataViewset)
+
 router.register('logdata', LogDataViewSet)
 router.register('devicedata', DeviceDataViewSet)
 router.register('machinedata', MachineDataViewSet)
 router.register('productiondata', ProductionDataViewSet)
-
+router.register('', RawDataViewset)
 
 urlpatterns = [
     path('livedata',LiveDataViewset.as_view()),
