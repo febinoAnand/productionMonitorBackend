@@ -31,8 +31,8 @@ class MqttSettings(models.Model):
     server_name_alias = models.CharField(max_length=45, blank=False)
     host = models.CharField(max_length=45, blank=False)
     port = models.IntegerField(blank=False)
-    username = models.CharField(max_length=45, blank=False)
-    password = models.CharField(max_length=45, blank=False)
+    username = models.CharField(max_length=45,blank=True)
+    password = models.CharField(max_length=45,blank=True)
     qos = models.IntegerField(choices=QOS_CHOICES, default=0, blank=False)
     keepalive = models.IntegerField(default=60, blank=False)
 

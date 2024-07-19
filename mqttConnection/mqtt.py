@@ -257,19 +257,32 @@ mqtt_client = mqtt.Client()
 def get_mqtt_settings():
     try:
         mqtt_settings = MqttSettings.objects.get()
-        return mqtt_settings
+        return mqtt_settings.__dict__
+
     except MqttSettings.DoesNotExist:
-        raise ValueError("MQTT settings not found in the database.")
+        print("Error getting mqtt")
+        default_settings = {}
+        default_settings["username"] = ""
+        default_settings["password"] = ""
+        default_settings["host"] = "mqtt.univa.cloud"
+        default_settings["port"] = 1883
+        default_settings["keepalive"] = 60
+        
+        return default_settings
+        # raise ValueError("MQTT settings not found in the database.")
 
 def start_mqtt_client():
 
     mqtt_settings = get_mqtt_settings()
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
-    mqtt_client.username_pw_set(mqtt_settings.username, mqtt_settings.password)
-    mqtt_client.connect(
-        host=mqtt_settings.host,
-        port=mqtt_settings.port,
-        keepalive=mqtt_settings.keepalive
-    )
-    mqtt_client.loop_start()
+    mqtt_client.username_pw_set(mqtt_settings["username"], mqtt_settings["password"])
+    try:
+        mqtt_client.connect(
+            host=mqtt_settings["host"],
+            port=mqtt_settings["port"],
+            keepalive=mqtt_settings["keepalive"]
+        )
+        mqtt_client.loop_start()
+    except Exception as e:
+        print ("MQTT not connected..",e)
