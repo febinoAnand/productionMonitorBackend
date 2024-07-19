@@ -256,7 +256,7 @@ mqtt_client = mqtt.Client()
 
 def get_mqtt_settings():
     try:
-        mqtt_settings = MqttSettings.objects.get()
+        mqtt_settings = MqttSettings.objects.first()
         return mqtt_settings.__dict__
 
     except MqttSettings.DoesNotExist:
@@ -270,6 +270,9 @@ def get_mqtt_settings():
         
         return default_settings
         # raise ValueError("MQTT settings not found in the database.")
+    
+    except Exception as e:
+        print ("Error in getting MQTT settings:",e)
 
 def start_mqtt_client():
 
