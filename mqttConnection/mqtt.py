@@ -74,9 +74,15 @@ def on_message(mqtt_client, userdata, msg):
             return
 
         # Extract timestamp and unique ID from the message
-        timestamp = message_data.get('timestamp', int(datetime.datetime.now().timestamp()))
-        message_data['timestamp'] = timestamp
+        if 'timestamp' in message_data:
+            timestamp = message_data['timestamp']
+        else:
+            timestamp = int(datetime.datetime.now().timestamp())
+            message_data['timestamp'] = timestamp
+            print('Generated current timestamp')
+
         unique_id = str(timestamp)
+
 
         current_date = datetime.date.today()
         current_time = datetime.datetime.now().time()
