@@ -6,7 +6,7 @@ from .models import *
 class DeviceSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeviceDetails
-        fields = ('id','deviceID','model','hardwareVersion','softwareVersion')
+        fields = ('id','device_name','hardware_version','software_version')
 
 
 class MachineSerializer(serializers.ModelSerializer):
