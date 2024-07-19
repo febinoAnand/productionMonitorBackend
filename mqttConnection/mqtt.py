@@ -5,21 +5,34 @@ from configuration.models import MqttSettings
 from data.models import LogData, DeviceData, MachineData
 from devices.models import DeviceDetails, MachineDetails
 
-univaPublish = "topicuniva"
-univaSubscribe = "univa/#"
+
 
 def on_connect(mqtt_client, userdata, flags, rc):
     if rc == 0:
         print('Connected successfully')
-        mqtt_client.subscribe(univaSubscribe)
-        mqtt_client.publish(univaPublish, "test connection")
+        subscribed_topics = set()
+        devices = DeviceDetails.objects.all()
+        
+        for device in devices:
+            sub_topic = device.sub_topic
+            if sub_topic and sub_topic not in subscribed_topics:
+                mqtt_client.subscribe(sub_topic)
+                subscribed_topics.add(sub_topic)
+                print(f'Subscribed to {sub_topic}')
+
+        print("All topics are successfully Subscribed!!")
     else:
         print(f'Bad connection. Code: {rc}')
 
-def publish_response(mqtt_client, topic, response, is_error=False):
-    publish_topic = univaPublish
-    result = mqtt_client.publish(publish_topic, json.dumps(response))
-    print(f"Response Published to {publish_topic}: {response} with result {result}")
+def publish_response(mqtt_client, device_token, response, is_error=False):
+    try:
+        device = DeviceDetails.objects.get(device_token=device_token)
+        publish_topic = device.pub_topic
+        result = mqtt_client.publish(publish_topic, json.dumps(response))
+        print(f"Response Published to {publish_topic}: {response} with result {result}")
+    except DeviceDetails.DoesNotExist:
+        print(f"Device with token {device_token} not found. Cannot publish response.")
+
 
 
 
@@ -35,11 +48,8 @@ def on_message(mqtt_client, userdata, msg):
         try:
             message_data = json.loads(currentMessage)
         except json.JSONDecodeError as e:
-            response = {
-                "status": "ERROR JSON",
-                "message": "Not a valid JSON received"
-            }
-            publish_response(mqtt_client, msg.topic, response, is_error=True)
+            
+            print( "status :ERROR JSON message :Not a valid JSON received")
             print(f'Error decoding JSON: {e}')
             return
 
@@ -79,7 +89,7 @@ def on_message(mqtt_client, userdata, msg):
                     "Device Token": device_token,
                     "timestamp": unique_id
                 }
-            publish_response(mqtt_client, msg.topic, response, is_error=True)
+            publish_response(mqtt_client, device_token, response, is_error=True)
             return
         
         # Step 3: Check if it's a command or machine data
@@ -108,14 +118,14 @@ def on_message(mqtt_client, userdata, msg):
                     "cmd_response": current_timestamp,
                     "device_token": device_token
                 }
-                publish_response(mqtt_client, msg.topic, response)
+                publish_response(mqtt_client,device_token, response)
 
             except DeviceDetails.DoesNotExist:
                 response = {
                     "status": "DEVICE NOT FOUND",
                     "message": "Device not found with given token"
                 }
-                publish_response(mqtt_client, msg.topic, response, is_error=True)
+                publish_response(mqtt_client, device_token, response, is_error=True)
                 print('Device token mismatch')
 
         elif 'timestamp' in message_data and 'device_token' in message_data:
@@ -142,7 +152,7 @@ def on_message(mqtt_client, userdata, msg):
                             "timestamp": timestamp,
                             "device_token": device_token
                         }
-                        publish_response(mqtt_client, msg.topic, response, is_error=True)
+                        publish_response(mqtt_client, device_token, response, is_error=True)
                         print('Timestamp is less than the first data in the log')
                         return
             except Exception as e:
@@ -157,7 +167,7 @@ def on_message(mqtt_client, userdata, msg):
                     "timestamp": timestamp,
                     "device_token": device_token
                 }
-                publish_response(mqtt_client, msg.topic, response, is_error=True)
+                publish_response(mqtt_client, device_token, response, is_error=True)
                 print('Device token mismatch')
                 return
 
@@ -170,7 +180,7 @@ def on_message(mqtt_client, userdata, msg):
                     "timestamp": timestamp,
                     "device_token": device_token
                 }
-                publish_response(mqtt_client, msg.topic, response, is_error=True)
+                publish_response(mqtt_client, device_token, response, is_error=True)
                 print('Machine ID not found in message data')
                 return
 
@@ -183,7 +193,7 @@ def on_message(mqtt_client, userdata, msg):
                     "timestamp": timestamp,
                     "device_token": device_token
                 }
-                publish_response(mqtt_client, msg.topic, response, is_error=True)
+                publish_response(mqtt_client, device_token, response, is_error=True)
                 print('Machine ID mismatch')
                 return
             #step:5 save machine data
@@ -217,7 +227,7 @@ def on_message(mqtt_client, userdata, msg):
                     "timestamp": timestamp,
                     "device_token": device_token
                 }
-                publish_response(mqtt_client, msg.topic, response)
+                publish_response(mqtt_client, device_token, response)
 
             except Exception as e:
                 response = {
@@ -226,7 +236,7 @@ def on_message(mqtt_client, userdata, msg):
                     "timestamp": timestamp,
                     "device_token": device_token
                 }
-                publish_response(mqtt_client, msg.topic, response, is_error=True)
+                publish_response(mqtt_client, device_token, response, is_error=True)
                 print(f'Error saving data to database: {e}')
 
         else:
@@ -235,7 +245,7 @@ def on_message(mqtt_client, userdata, msg):
                 "status": "DATA ERROR",
                 "message": "Unsupported message format",
             }
-            publish_response(mqtt_client, msg.topic, response)
+            publish_response(mqtt_client, device_token, response)
 
     except ValueError as e:
         response = {
@@ -244,7 +254,7 @@ def on_message(mqtt_client, userdata, msg):
             "timestamp": timestamp,
             "device_token": device_token
         }
-        publish_response(mqtt_client, msg.topic, response, is_error=True)
+        publish_response(mqtt_client, device_token, response, is_error=True)
         print(f'Error processing message: {e}')
 
 
