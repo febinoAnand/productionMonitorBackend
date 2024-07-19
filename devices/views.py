@@ -24,6 +24,11 @@ from django.core import serializers
 
 
 # Create your views here.
+
+class MachineViewSetUpdated(viewsets.ModelViewSet):
+    serializer_class = MachineSerializer
+    queryset = MachineDetails.objects.all()
+
 class MachineViewSet(viewsets.ModelViewSet):
     serializer_class = MachineSerializer
     queryset = MachineDetails.objects.all()
