@@ -1,11 +1,11 @@
 from django.urls import path,include
 from rest_framework import routers
-from .views import MachineViewSet, DeviceViewSet, RFIDViewSet, UnRegisteredViewSet, DeviceVerification, TokenAuthentication, UnRegisterViewSetPostMethod, MachineGroupViewSet, ShiftTimingsViewSet
+from .views import MachineViewSet, DeviceViewSet, RFIDViewSet, UnRegisteredViewSet, DeviceVerification, TokenAuthentication, UnRegisterViewSetPostMethod, MachineGroupViewSet, ShiftTimingsViewSet,MachineViewSetUpdated
 
 
 
 router = routers.DefaultRouter()
-router.register('machine',MachineViewSet)
+router.register('machine',MachineViewSetUpdated)
 router.register('device',DeviceViewSet)
 # router.register('rfid',RFIDViewSet)
 router.register('unregister', UnRegisteredViewSet)
