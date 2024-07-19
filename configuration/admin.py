@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import UART, MqttSettings, Port,HttpsSettings
 
 class MqttSettingsAdmin(admin.ModelAdmin):
-    list_display = ('server_name_alias', 'host', 'port', 'username', 'qos')
+    list_display = ('server_name_alias', 'host', 'port', 'username', 'qos','keepalive')
     search_fields = ('server_name_alias', 'host', 'username')
 
 class HttpsSettingsAdmin(admin.ModelAdmin):

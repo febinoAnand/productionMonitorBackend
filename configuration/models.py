@@ -1,5 +1,5 @@
 from django.db import models
-
+from django.core.exceptions import ValidationError
 # Create your models here.
 class Port(models.Model):
     portname = models.CharField(max_length=20,unique=True,blank=False)
@@ -21,13 +21,25 @@ class UART(models.Model):
 
     
 class MqttSettings(models.Model):
+    QOS_CHOICES = [
+        (0, 'At most once (0)'),
+        (1, 'At least once (1)'),
+        (2, 'Exactly once (2)'),
+    ]
+
     _id = models.AutoField(primary_key=True)
     server_name_alias = models.CharField(max_length=45, blank=False)
     host = models.CharField(max_length=45, blank=False)
     port = models.IntegerField(blank=False)
     username = models.CharField(max_length=45, blank=False)
     password = models.CharField(max_length=45, blank=False)
-    qos = models.IntegerField(default=0, blank=False)
+    qos = models.IntegerField(choices=QOS_CHOICES, default=0, blank=False)
+    keepalive = models.IntegerField(default=60, blank=False)
+
+    def save(self, *args, **kwargs):
+        if not self.pk and MqttSettings.objects.exists():
+            raise ValidationError("There can be only one MqttSettings instance")
+        return super(MqttSettings, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.server_name_alias
