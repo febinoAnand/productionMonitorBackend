@@ -253,19 +253,25 @@ def on_message(mqtt_client, userdata, msg):
 
                 #Step 6: Extract production count
                 production_count = message_data.get(machine_id, 0)
-                last_production_data = ProductionData.objects.filter(machine_id=machine).order_by('-date', '-time').first()
+                print(f"Extracted production count: {production_count} for machine_id: {machine_id}")
+                last_production_data = ProductionData.objects.filter(machine_id=machine.id).order_by('-date', '-time').first()
+                print("Queried last_production_data:", last_production_data)
 
-                if last_production_data and last_production_data.production_count > production_count:
-                    response = {
-                        "status": "PRODUCTION COUNT ERROR",
-                        "message": "Production count is less than last recorded count",
-                        "timestamp": timestamp,
-                        "device_token": device_token,
-                        "production_count": production_count
-                    }
-                    publish_response(mqtt_client, device_token, response, is_error=True)
-                    print('Production count is less than the last recorded count')
-                    return
+                if last_production_data:
+                    print(f"Last production count: {last_production_data.production_count}")
+                    if last_production_data.production_count > production_count:
+                        response = {
+                            "status": "PRODUCTION COUNT ERROR",
+                            "message": "Production count is less than last recorded count",
+                            "timestamp": timestamp,
+                            "device_token": device_token,
+                            "production_count": production_count
+                        }
+                        publish_response(mqtt_client, device_token, response, is_error=True)
+                        print('Production count is less than the last recorded count')
+                        return
+                else:
+                    print("No previous production data found for the given machine_id")
                 
                 #Step 7: Save production data
                 # Fetch the ShiftTimings instance
@@ -290,15 +296,15 @@ def on_message(mqtt_client, userdata, msg):
                 production_data = ProductionData(
                     date=message_date,
                     time=message_time,
-                    shift_id=shift_instance,
+                    shift_id=shift_instance._id,
                     shift_name=shift_instance.shift_name,
                     shift_start_time=shift_instance.start_time,
                     shift_end_time=shift_instance.end_time,
                     target_production=50,  
-                    machine_id=machine,
+                    machine_id=machine.id,
                     machine_name=machine.machine_name,
                     production_count=production_count,
-                    data_id=log_data
+                    data_id=log_data.id
                 )
                 production_data.save()
                 print(f'Saved production data to database: {production_data}')
@@ -352,9 +358,6 @@ def get_shift_instance(message_time):
     except Exception as e:
         print(f'Error fetching ShiftTimings instance: {e}')
         return None
-
-
-
 
 
 

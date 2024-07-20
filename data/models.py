@@ -103,15 +103,15 @@ class MachineData(models.Model):
 class ProductionData(models.Model):
     date = models.DateField(blank=False)
     time = models.TimeField(blank=False)
-    shift_id = models.ForeignKey(ShiftTimings, on_delete=models.CASCADE)
+    shift_id = models.IntegerField(blank=False)
     shift_name = models.CharField(max_length=45, blank=False)
     shift_start_time = models.TimeField(blank=False)
     shift_end_time = models.TimeField(blank=False)
     target_production = models.IntegerField(blank=False)
-    machine_id = models.ForeignKey(MachineDetails, on_delete=models.CASCADE)
+    machine_id = models.CharField(max_length=45, blank=False)  
     machine_name = models.CharField(max_length=45, blank=False)
     production_count = models.IntegerField(blank=False)
-    data_id = models.ForeignKey(LogData, on_delete=models.CASCADE)
+    data_id = models.IntegerField(blank=False)  
 
     def __str__(self):
         return self.shift_name
