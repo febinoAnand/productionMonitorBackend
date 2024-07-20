@@ -6,13 +6,13 @@ from .models import *
 class DeviceSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeviceDetails
-        fields = ('id','device_name','hardware_version','software_version','device_token','protocol','pub_topic','sub_topic','api_path')
+        fields = ('_id','device_name','hardware_version','software_version','device_token','protocol','pub_topic','sub_topic','api_path')
 
 
 class MachineSerializer(serializers.ModelSerializer):
     class Meta:
         model = MachineDetails
-        fields = ['id', 'machine_id', 'machine_name', 'manufacture', 'line', 'device']
+        fields = ['_id', 'machine_id', 'machine_name', 'manufacture', 'line', 'device']
 
 
 class MachineWithoutDeviceSerializer(serializers.ModelSerializer):
@@ -68,7 +68,7 @@ class GetTokenSerializer(serializers.Serializer):
 class MachineGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = MachineGroup
-        fields = ['id','machine_list', 'group_name']
+        fields = ['_id','machine_list', 'group_name']
 
 class ShiftTimingsSerializer(serializers.ModelSerializer):
     class Meta:
