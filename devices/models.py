@@ -6,30 +6,48 @@ import os
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 
 
 # Create your models here.
 
 class DeviceDetails(models.Model):
+    PROTOCOL_CHOICES = [
+        ('mqtt', 'MQTT'),
+        ('http', 'HTTP')
+    ]
+
     device_name = models.CharField(max_length=45, blank=False)
-    device_token = models.CharField(max_length=100, blank=False)
+    device_token = models.CharField(max_length=100, blank=False, unique=True)
     hardware_version = models.CharField(max_length=10, null=True, blank=True)
     software_version = models.CharField(max_length=10, null=True, blank=True)
     create_date_time = models.DateTimeField(auto_now_add=True)
     update_date_time = models.DateTimeField(auto_now=True)
-    protocol = models.CharField(max_length=10, blank=False)
+    protocol = models.CharField(max_length=10, blank=False, choices=PROTOCOL_CHOICES)
     pub_topic = models.CharField(max_length=100, null=True, blank=True)
     sub_topic = models.CharField(max_length=100, null=True, blank=True)
     api_path = models.CharField(max_length=100, null=True, blank=True)
-    
 
     def __str__(self):
         return self.device_name
+
+    def clean(self):
+      
+        if self.protocol == 'mqtt':
+            if not self.pub_topic or not self.sub_topic:
+                raise ValidationError('pub_topic and sub_topic are required for MQTT protocol.')
+        elif self.protocol == 'http':
+            if not self.api_path:
+                raise ValidationError('api_path is required for HTTP protocol.')
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super(DeviceDetails, self).save(*args, **kwargs)
     
 
 class MachineDetails(models.Model):
     machine_name = models.CharField(max_length=45, blank=False,default="none")
-    machine_id = models.CharField(max_length=15, unique=True, blank=False, default=uuid.uuid1)
+    machine_id = models.CharField(max_length=15, unique=True, blank=False)
     line = models.CharField(max_length=30, null=True, blank=True)
     manufacture = models.CharField(max_length=45, null=True, blank=True)
     year = models.CharField(max_length=30, null=True, blank=True)

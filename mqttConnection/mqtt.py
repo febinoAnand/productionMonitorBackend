@@ -268,12 +268,23 @@ def on_message(mqtt_client, userdata, msg):
                     return
                 
                 #Step 7: Save production data
-                # Fetch the first ShiftTimings instance
-                try:
-                    shift_instance = ShiftTimings.objects.first()
-                except Exception as e:
-                    print(f'Error fetching ShiftTimings instance: {e}')
-                    shift_instance = None
+                # Fetch the ShiftTimings instance
+                dt = datetime.datetime.fromtimestamp(message_data['timestamp'])
+                message_date = dt.date()
+                message_time = dt.time()
+                shift_instance = get_shift_instance(message_time)
+    
+                if not shift_instance:
+                    print('No matching shift found for the given time')
+                    response = {
+                        "status": "SHIFT ERROR",
+                        "message": "No matching shift found for the given time",
+                        "timestamp": message_data['timestamp'],
+                        "device_token": message_data.get('device_token', '')
+                    }
+                    publish_response(mqtt_client, message_data.get('device_token', ''), response, is_error=True)
+                    return
+              
 
                 # Save production data
                 production_data = ProductionData(
@@ -304,7 +315,7 @@ def on_message(mqtt_client, userdata, msg):
             except Exception as e:
                 response = {
                     "status": "DATA SAVE ERROR",
-                    "message": f"Error saving machine or production data: {e}",
+                    "message": f"Error production data: {e}",
                     "timestamp": timestamp,
                     "device_token": device_token
                 }
@@ -330,7 +341,17 @@ def on_message(mqtt_client, userdata, msg):
         print(f'Error processing message: {e}')
 
 
-
+def get_shift_instance(message_time):
+    print("msg time",message_time)
+    try:
+        shift_instance = ShiftTimings.objects.filter(
+            start_time__lte=message_time,
+            end_time__gte=message_time
+        ).first()
+        return shift_instance
+    except Exception as e:
+        print(f'Error fetching ShiftTimings instance: {e}')
+        return None
 
 
 
