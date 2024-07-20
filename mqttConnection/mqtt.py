@@ -388,8 +388,9 @@ def start_mqtt_client():
     mqtt_settings = get_mqtt_settings()
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
-    mqtt_client.username_pw_set(mqtt_settings["username"], mqtt_settings["password"])
+    
     try:
+        mqtt_client.username_pw_set(mqtt_settings["username"], mqtt_settings["password"])
         mqtt_client.connect(
             host=mqtt_settings["host"],
             port=mqtt_settings["port"],
