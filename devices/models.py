@@ -77,6 +77,19 @@ class ShiftTimings(models.Model):
     def __str__(self):
         return self.shift_name
 
+    def clean(self):
+        overlapping_shifts = ShiftTimings.objects.filter(
+            start_time__lt=self.end_time,
+            end_time__gt=self.start_time
+        ).exclude(pk=self.pk)
+        
+        if overlapping_shifts.exists():
+            raise ValidationError(f'The shift timings overlap with an existing shift: {overlapping_shifts.first().shift_name}')
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super(ShiftTimings, self).save(*args, **kwargs)
+
 class RFID(models.Model):
     rfid = models.CharField(max_length=50,blank=False,unique=True,default=uuid.uuid1)
     rfidUser = models.ForeignKey(User,on_delete=models.CASCADE)
