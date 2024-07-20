@@ -52,6 +52,7 @@ class MachineDetails(models.Model):
     manufacture = models.CharField(max_length=45, null=True, blank=True)
     year = models.CharField(max_length=30, null=True, blank=True)
     device = models.ForeignKey(DeviceDetails, on_delete=models.CASCADE)
+    production_per_hour = models.IntegerField(blank=False, default=0)
     create_date_time = models.DateTimeField(auto_now_add=True)
     update_date_time = models.DateTimeField(auto_now=True)
 
