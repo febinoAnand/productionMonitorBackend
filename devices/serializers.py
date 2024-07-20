@@ -68,7 +68,7 @@ class GetTokenSerializer(serializers.Serializer):
 class MachineGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = MachineGroup
-        fields = ['machine_list', 'group_name']
+        fields = ['id','machine_list', 'group_name']
 
 class ShiftTimingsSerializer(serializers.ModelSerializer):
     class Meta:
