@@ -509,4 +509,49 @@ class ShiftReportViewSet(viewsets.ViewSet):
         return Response(response_data)
 
 
+class SummaryReportViewSet(viewsets.ViewSet):
 
+    def create(self, request):
+        print("Request data:", request.data)  # Debug statement
+        serializer = SummaryReportSerializer(data=request.data)
+        if not serializer.is_valid():
+            print("Serializer errors:", serializer.errors)  # Debug statement
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Extract validated data
+        date_str = serializer.validated_data.get('date')
+        machine_id = serializer.validated_data.get('machine_id')
+        
+        print("Validated data:", serializer.validated_data)  # Debug statement
+
+        # Parse the date
+        parsed_date = date_str
+        print("Parsed date:", parsed_date)
+
+        # Retrieve the machine instance
+        try:
+            machine = MachineDetails.objects.get(machine_id=machine_id)
+            print("Machine found:", machine)
+        except MachineDetails.DoesNotExist:
+            print("Machine not found")
+            return Response({"error": "Machine not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Retrieve all production data for the given date and machine_id
+        production_data = ProductionData.objects.filter(
+            date=parsed_date,
+            machine_id=machine.id
+        ).values('time', 'production_count', 'target_production')
+        
+        # Convert queryset to list of dicts
+        production_data_list = list(production_data)
+
+        # Prepare the response data
+        response_data = {
+            'date': date_str,
+            'machine_id': machine_id,
+            'production_data': production_data_list
+        }
+
+        print("Response data:", response_data)  # Debug statement
+
+        return Response(response_data, status=status.HTTP_200_OK)

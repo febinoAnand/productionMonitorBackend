@@ -135,3 +135,7 @@ class ShiftReportSerializer(serializers.Serializer):
     date = serializers.CharField()
     shift_id = serializers.IntegerField()
     machine_id = serializers.CharField()
+
+class SummaryReportSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    machine_id = serializers.CharField(max_length=255)

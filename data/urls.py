@@ -13,7 +13,8 @@ from .views import (
     ProductionDataViewSet, 
     DashboardViewSet,
     ProductionMonitorViewSet,
-    ShiftReportViewSet
+    ShiftReportViewSet,
+    SummaryReportViewSet
 )
 from rest_framework import routers
 
@@ -28,6 +29,7 @@ router.register('raw', RawDataViewset)
 router.register('dashboard', DashboardViewSet, basename='dashboard')
 router.register('production-monitor', ProductionMonitorViewSet, basename='production-monitor')
 router.register(r'shift-report', ShiftReportViewSet, basename='shift-report')
+router.register(r'summary-report', SummaryReportViewSet, basename='summary-report')
 urlpatterns = [
     path('livedata', LiveDataViewset.as_view()),
     path('machinelivedata', MachineLiveDataViewset.as_view()),
