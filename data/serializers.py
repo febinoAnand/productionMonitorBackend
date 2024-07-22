@@ -79,3 +79,59 @@ class ProductionDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductionData
         fields = ['date', 'time', 'shift_id', 'shift_name', 'shift_start_time', 'shift_end_time', 'target_production', 'machine_id', 'machine_name', 'production_count', 'data_id']
+        
+
+
+class MachineProductionSerializer(serializers.ModelSerializer):
+    production_count = serializers.SerializerMethodField()
+    target_production = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MachineDetails
+        fields = ['machine_name', 'machine_id', 'production_count', 'target_production']
+
+    def get_production_count(self, obj):
+        last_production = ProductionData.objects.filter(machine_id=obj).order_by('-date', '-time').first()
+        return last_production.production_count if last_production else 0
+
+    def get_target_production(self, obj):
+        last_production = ProductionData.objects.filter(machine_id=obj).order_by('-date', '-time').first()
+        return last_production.target_production if last_production else 0
+
+class MachineGroupSerializer(serializers.ModelSerializer):
+    machines = serializers.SerializerMethodField()
+    number_of_machines = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MachineGroup
+        fields = ['group_name', 'number_of_machines', 'machines']
+
+    def get_machines(self, obj):
+        machines = obj.machine_list.all()
+        return MachineProductionSerializer(machines, many=True).data
+
+    def get_number_of_machines(self, obj):
+        return obj.machine_list.count()
+
+class DashboardSerializer(serializers.Serializer):
+    number_of_groups = serializers.SerializerMethodField()
+    groups = serializers.SerializerMethodField()
+
+    def get_number_of_groups(self, obj):
+        return MachineGroup.objects.count()
+
+    def get_groups(self, obj):
+        groups = MachineGroup.objects.all()
+        return MachineGroupSerializer(groups, many=True).data
+    
+    
+class HourlyDataSerializer(serializers.Serializer):
+    start_time = serializers.TimeField()
+    end_time = serializers.TimeField()
+    production_count = serializers.IntegerField()
+    target_production = serializers.IntegerField()
+
+class ShiftReportSerializer(serializers.Serializer):
+    date = serializers.CharField()
+    shift_id = serializers.IntegerField()
+    machine_id = serializers.CharField()

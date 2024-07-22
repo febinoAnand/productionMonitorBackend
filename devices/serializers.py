@@ -12,7 +12,7 @@ class DeviceSerializer(serializers.ModelSerializer):
 class MachineSerializer(serializers.ModelSerializer):
     class Meta:
         model = MachineDetails
-        fields = ['id', 'machine_id', 'machine_name', 'manufacture', 'line', 'device']
+        fields = ['id', 'machine_id', 'machine_name', 'manufacture', 'line', 'device','production_per_hour']
 
 
 class MachineWithoutDeviceSerializer(serializers.ModelSerializer):
@@ -73,4 +73,4 @@ class MachineGroupSerializer(serializers.ModelSerializer):
 class ShiftTimingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShiftTimings
-        fields = ['id', 'start_time', 'end_time', 'shift_name', 'create_date_time', 'update_date_time']
+        fields = ['_id', 'start_time', 'end_time', 'shift_name', 'create_date_time', 'update_date_time']

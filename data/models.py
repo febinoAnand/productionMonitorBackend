@@ -115,5 +115,6 @@ class ProductionData(models.Model):
 
     def __str__(self):
         return self.shift_name
+    
 
 

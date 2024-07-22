@@ -1,16 +1,15 @@
 import json
 from rest_framework import viewsets, status, views
 from rest_framework.response import Response
-from .models import RawData, ProblemData, LastProblemData, LogData, DeviceData, MachineData, ProductionData
-from .serializers import RawSerializer, ProblemDataSerializer, LastProblemDataSerializer, RawSerializerWithDateTime, LogDataSerializer, DeviceDataSerializer, MachineDataSerializer, ProductionDataSerializer
-from events.models import Event, EventGroup
-from events.serializers import EventSerializer
-from devices.models import DeviceDetails, MachineDetails, Token
-from devices.serializers import MachineSerializer, MachineWithoutDeviceSerializer, DeviceSerializer
 import datetime
 from django.core import serializers
 from django.db.models import Q
-
+from rest_framework.decorators import action
+from .models import *
+from .serializers import *
+from django.db.models import Sum
+from django.utils.dateparse import parse_date
+from datetime import datetime, timedelta
 
 class RawGetMethod(views.APIView):
     schema = None
@@ -279,3 +278,214 @@ class MachineDataViewSet(viewsets.ModelViewSet):
 class ProductionDataViewSet(viewsets.ModelViewSet):
     queryset = ProductionData.objects.all()
     serializer_class = ProductionDataSerializer
+
+
+
+
+class DashboardViewSet(viewsets.ViewSet):
+
+    def list(self, request):
+        groups = MachineGroup.objects.all()
+        dashboard_data = []
+
+        for group in groups:
+            machines = group.machine_list.all()
+            group_data = {
+                'group_id': group.id,
+                'group_name': group.group_name,
+                'machine_count': machines.count(),
+                'machines': []
+            }
+
+            for machine in machines:
+                production_data = ProductionData.objects.filter(machine_id=machine.id).order_by('-date', '-time').first()
+                
+                machine_data = {
+                    'machine_id': machine.id,
+                    'machine_name': machine.machine_name,
+                    'production_count': production_data.production_count if production_data else 0,
+                    'target_production': production_data.target_production if production_data else 0,
+                }
+                group_data['machines'].append(machine_data)
+            
+            dashboard_data.append(group_data)
+
+        return Response(dashboard_data)
+ 
+class ProductionMonitorViewSet(viewsets.ViewSet):
+
+    def list(self, request):
+        shift_wise_data = []
+        total_production_count_all_shifts = 0
+        total_target_production_all_shifts = 0
+
+        shifts = ShiftTimings.objects.all()
+        groups = MachineGroup.objects.all()
+
+        cumulative_machine_data = {}
+
+        for shift in shifts:
+            shift_data = {
+                'shift_id': shift._id,
+                'shift_name': shift.shift_name,
+                'shift_start_time': shift.start_time,
+                'shift_end_time': shift.end_time,
+                'groups': [],
+                'total_production_count_by_shifts': 0,
+                'total_target_count_by_shifts': 0
+            }
+
+            for group in groups:
+                machines = group.machine_list.all()
+                group_data = {
+                    'group_id': group.id,
+                    'group_name': group.group_name,
+                    'machines': [],
+                    'total_production_count_by_group': 0,
+                    'total_target_count_by_group': 0
+                }
+
+                for machine in machines:
+                    latest_production_data = ProductionData.objects.filter(
+                        machine_id=machine.id,
+                        shift_id=shift._id
+                    ).order_by('-date', '-time').first()
+
+                    if latest_production_data:
+                        production_count = latest_production_data.production_count
+                        target_production = latest_production_data.target_production
+                    else:
+                        production_count = 0
+                        target_production = 0
+
+                    machine_data = {
+                        'machine_id': machine.id,
+                        'machine_name': machine.machine_name,
+                        'production_count': production_count,
+                        'target_production': target_production
+                    }
+
+                    group_data['machines'].append(machine_data)
+                    group_data['total_production_count_by_group'] += production_count
+                    group_data['total_target_count_by_group'] += target_production
+
+                    if machine.id not in cumulative_machine_data:
+                        cumulative_machine_data[machine.id] = {
+                            'machine_id': machine.id,
+                            'machine_name': machine.machine_name,
+                            'cumulative_production_count': production_count,
+                            'cumulative_target_production': target_production
+                        }
+                    else:
+                        cumulative_machine_data[machine.id]['cumulative_production_count'] += production_count
+                        cumulative_machine_data[machine.id]['cumulative_target_production'] += target_production
+
+                shift_data['groups'].append(group_data)
+                shift_data['total_production_count_by_shifts'] += group_data['total_production_count_by_group']
+                shift_data['total_target_count_by_shifts'] += group_data['total_target_count_by_group']
+
+            shift_wise_data.append(shift_data)
+            total_production_count_all_shifts += shift_data['total_production_count_by_shifts']
+            total_target_production_all_shifts += shift_data['total_target_count_by_shifts']
+
+        return Response({
+            'shift_wise_data': shift_wise_data,
+            'cumulative_machine_data': list(cumulative_machine_data.values()),
+            'total_production_count_all_shifts': total_production_count_all_shifts,
+            'total_target_production_all_shifts': total_target_production_all_shifts,
+        })
+
+
+
+
+from .models import ShiftTimings, ProductionData  # Ensure models are imported
+
+class ShiftReportViewSet(viewsets.ViewSet):
+
+    def create(self, request):
+        print("Request data:", request.data)  # Debug statement
+        serializer = ShiftReportSerializer(data=request.data)
+        if not serializer.is_valid():
+            print("Serializer errors:", serializer.errors)  # Debug statement
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Extract validated data
+        date_str = serializer.validated_data.get('date')
+        shift_id = serializer.validated_data.get('shift_id')
+        machine_id = serializer.validated_data.get('machine_id')
+        
+        print("Validated data:", serializer.validated_data)  # Debug statement
+
+        # Check if date is a string and parse it
+        if isinstance(date_str, str):
+            parsed_date = parse_date(date_str)
+            print("Successfully parsed date:", parsed_date)
+            if parsed_date is None:
+                print("Invalid date format")
+                return Response({"error": "Invalid date format"}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            print("Date must be a string")
+            return Response({"error": "Date must be a string"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get shift timings
+        try:
+            shift = ShiftTimings.objects.get(_id=shift_id)  # Corrected _id
+            print("Shift found:", shift)
+        except ShiftTimings.DoesNotExist:
+            print("Shift not found")
+            return Response({"error": "Shift not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        start_time = shift.start_time
+        end_time = shift.end_time
+        print("Start time:", start_time, "End time:", end_time)
+
+        # Calculate hourly production data
+        hourly_data = []
+        current_time = datetime.combine(parsed_date, start_time)
+        print("Initial current_time:", current_time)
+
+        while True:
+            next_time = current_time + timedelta(hours=1)
+            
+            # Debug output
+            print(f"Filtering data from {current_time.time()} to {next_time.time()}")
+
+            # Filter production data
+            production_data = ProductionData.objects.filter(
+                date=parsed_date,
+                machine_id=machine_id,
+                time__gte=current_time.time(),
+                time__lt=next_time.time()
+            ).aggregate(
+                production_count=Sum('production_count'),
+                target_production=Sum('target_production')
+            )
+
+            # Debug output
+            print(f"Production data for period {current_time.time()} to {next_time.time()}: {production_data}")
+
+            hourly_data.append({
+                'start_time': current_time.time().strftime('%H:%M:%S'),
+                'end_time': next_time.time().strftime('%H:%M:%S'),
+                'production_count': production_data['production_count'] or 0,
+                'target_production': production_data['target_production'] or 0
+            })
+            
+            current_time = next_time
+
+            # Exit loop if we have exceeded the end_time
+            if current_time.time() >= end_time:
+                break
+            
+        print("Successfully done")
+        # Prepare the response data
+        response_data = {
+            'date': date_str,
+            'shift_id': shift_id,
+            'machine_id': machine_id,
+            'hourly_data': hourly_data
+        }
+
+        return Response(response_data)
+
+
