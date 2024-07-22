@@ -555,3 +555,86 @@ class SummaryReportViewSet(viewsets.ViewSet):
         print("Response data:", response_data)  # Debug statement
 
         return Response(response_data, status=status.HTTP_200_OK)
+    
+
+class ShiftwiseReportGenerateViewSet(viewsets.ViewSet):
+
+    def create(self, request):
+        print("Request data:", request.data)  # Debug statement
+        serializer = ShiftwiseReportSerializer(data=request.data)
+        if not serializer.is_valid():
+            print("Serializer errors:", serializer.errors)  # Debug statement
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Extract validated data
+        date_str = serializer.validated_data.get('date')
+        machine_id = serializer.validated_data.get('machine_id')
+        
+        print("Validated data:", serializer.validated_data)  # Debug statement
+
+        # Parse date
+        parsed_date = serializer.validated_data.get('date')
+        print("Parsed date:", parsed_date)
+        
+        # Retrieve the machine instance
+        try:
+            machine = MachineDetails.objects.get(machine_id=machine_id)
+            print("Machine found:", machine)
+        except MachineDetails.DoesNotExist:
+            print("Machine not found")
+            return Response({"error": "Machine not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Retrieve all shift timings
+        shifts = ShiftTimings.objects.all()
+        shiftwise_data = []
+
+        for shift in shifts:
+            start_time = shift.start_time
+            end_time = shift.end_time
+            print(f"Processing shift: {shift.shift_name}, Start: {start_time}, End: {end_time}")
+
+            shift_data = {
+                "shift_name": shift.shift_name,
+                "start_time": start_time.strftime('%H:%M:%S'),
+                "end_time": end_time.strftime('%H:%M:%S'),
+                "production_data": []
+            }
+
+            current_time = datetime.combine(parsed_date, start_time)
+            while current_time.time() < end_time:
+                next_time = current_time + timedelta(hours=1)
+
+                print(f"Filtering data from {current_time.time()} to {next_time.time()}")
+
+                # Filter production data
+                production_entries = ProductionData.objects.filter(
+                    date=parsed_date,
+                    machine_id=machine.id,
+                    time__gte=current_time.time(),
+                    time__lt=next_time.time()
+                )
+
+                # Debug output for each entry
+                for entry in production_entries:
+                    print(f"Production entry: Time: {entry.time}, Production Count: {entry.production_count}, Target Production: {entry.target_production}")
+
+                    shift_data["production_data"].append({
+                        'time': entry.time.strftime('%H:%M:%S'),
+                        'production_count': entry.production_count,
+                        'target_production': entry.target_production
+                    })
+
+                current_time = next_time
+                if current_time.date() > parsed_date or (current_time.date() == parsed_date and current_time.time() >= end_time):
+                    break
+
+            shiftwise_data.append(shift_data)
+
+        response_data = {
+            'date': date_str,
+            'machine_id': machine_id,
+            'shiftwise_data': shiftwise_data
+        }
+
+        print("Successfully done")
+        return Response(response_data, status=status.HTTP_200_OK)
