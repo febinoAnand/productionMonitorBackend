@@ -15,7 +15,8 @@ from .views import (
     ProductionMonitorViewSet,
     ShiftReportViewSet,
     SummaryReportViewSet,
-    ShiftwiseReportGenerateViewSet
+    ShiftwiseReportGenerateViewSet,
+    ListAchievementsViewSet
 )
 from rest_framework import routers
 
@@ -32,6 +33,7 @@ router.register('production-monitor', ProductionMonitorViewSet, basename='produc
 router.register(r'shift-report', ShiftReportViewSet, basename='shift-report')
 router.register(r'summary-report', SummaryReportViewSet, basename='summary-report')
 router.register(r'shiftwise-report', ShiftwiseReportGenerateViewSet, basename='shiftwise-report-generate')
+router.register(r'list_achievements', ListAchievementsViewSet, basename='list_achievements')
 urlpatterns = [
     path('livedata', LiveDataViewset.as_view()),
     path('machinelivedata', MachineLiveDataViewset.as_view()),

@@ -638,3 +638,72 @@ class ShiftwiseReportGenerateViewSet(viewsets.ViewSet):
 
         print("Successfully done")
         return Response(response_data, status=status.HTTP_200_OK)
+    
+    
+class ListAchievementsViewSet(viewsets.ViewSet):
+    def list(self, request):
+        # Fetch all unique entry dates in reverse order
+        entry_dates = ProductionData.objects.values_list('date', flat=True).distinct().order_by('-date')
+        
+        # Get all machine groups
+        groups = MachineGroup.objects.all()
+        
+        # Initialize list to store results
+        group_productions = []
+
+        for group in groups:
+            group_data = {
+                'group': group.group_name,
+                'dates': []
+            }
+
+            for date in entry_dates:
+                date_data = {
+                    'date': date,
+                    'shifts': []
+                }
+                
+                # Get all shifts
+                shifts = ShiftTimings.objects.all()
+                
+                for shift in shifts:
+                    shift_start = shift.start_time
+                    shift_end = shift.end_time
+                    
+                    # Initialize counters for the current shift
+                    total_production_count = 0
+                    total_target_production = 0
+                    data_found = False
+                    
+                    # Get all machines in the current group
+                    machines = group.machine_list.all()
+                    
+                    for machine in machines:
+                        # Filter production data for the given date, machine, and shift
+                        production_data = ProductionData.objects.filter(
+                            date=date,
+                            machine_id=machine.id,
+                            time__gte=shift_start,
+                            time__lt=shift_end
+                        ).order_by('-time').first()
+                        
+                        if production_data:
+                            total_production_count += production_data.production_count
+                            total_target_production += production_data.target_production
+                            data_found = True
+                    
+                    # Append shift data to date data
+                    date_data['shifts'].append({
+                        'shift_name': shift.shift_name,
+                        'production_count': total_production_count if data_found else 0,
+                        'target_production': total_target_production if data_found else 0
+                    })
+                
+                # Append date data to group data
+                group_data['dates'].append(date_data)
+            
+            # Append group data to the final result list
+            group_productions.append(group_data)
+
+        # Return the response
+        return Response(group_productions)
