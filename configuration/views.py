@@ -8,7 +8,7 @@ class MQTTViewSet(viewsets.ModelViewSet):
     schema = None
     serializer_class = MQTTSerializer
     queryset = MqttSettings.objects.all()
-    http_method_names = ['get']
+    http_method_names = ['get','put']
 
 class UARTViewSet(viewsets.ModelViewSet):
     schema = None
