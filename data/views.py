@@ -398,7 +398,6 @@ class ProductionMonitorViewSet(viewsets.ViewSet):
 
 
 
-from .models import ShiftTimings, ProductionData  # Ensure models are imported
 
 class ShiftReportViewSet(viewsets.ViewSet):
 
@@ -429,7 +428,7 @@ class ShiftReportViewSet(viewsets.ViewSet):
         
         # Get shift timings
         try:
-            shift = ShiftTimings.objects.get(_id=shift_id)  # Corrected _id
+            shift = ShiftTimings.objects.get(_id=shift_id)
             print("Shift found:", shift)
         except ShiftTimings.DoesNotExist:
             print("Shift not found")
@@ -444,22 +443,43 @@ class ShiftReportViewSet(viewsets.ViewSet):
         current_time = datetime.combine(parsed_date, start_time)
         print("Initial current_time:", current_time)
 
-        while True:
+        # Retrieve the machine instance
+        try:
+            machine = MachineDetails.objects.get(machine_id=machine_id)
+            print("Machine found:", machine)
+        except MachineDetails.DoesNotExist:
+            print("Machine not found")
+            return Response({"error": "Machine not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        production_data_all = ProductionData.objects.filter(
+            date=parsed_date,
+            machine_id=machine.id,
+        )
+        print("Production data for this date and machine:", production_data_all)
+        
+        while current_time.time() < end_time:
             next_time = current_time + timedelta(hours=1)
             
             # Debug output
             print(f"Filtering data from {current_time.time()} to {next_time.time()}")
 
-            # Filter production data
-            production_data = ProductionData.objects.filter(
-                date=parsed_date,
-                machine_id=machine_id,
+            # Retrieve the last entry within the current time period
+            last_entry = production_data_all.filter(
                 time__gte=current_time.time(),
                 time__lt=next_time.time()
-            ).aggregate(
-                production_count=Sum('production_count'),
-                target_production=Sum('target_production')
-            )
+            ).order_by('-time').first()
+
+            # Aggregate data from the last entry
+            if last_entry:
+                production_data = {
+                    'production_count': last_entry.production_count,
+                    'target_production': last_entry.target_production
+                }
+            else:
+                production_data = {
+                    'production_count': 0,
+                    'target_production': 0
+                }
 
             # Debug output
             print(f"Production data for period {current_time.time()} to {next_time.time()}: {production_data}")
@@ -467,14 +487,14 @@ class ShiftReportViewSet(viewsets.ViewSet):
             hourly_data.append({
                 'start_time': current_time.time().strftime('%H:%M:%S'),
                 'end_time': next_time.time().strftime('%H:%M:%S'),
-                'production_count': production_data['production_count'] or 0,
-                'target_production': production_data['target_production'] or 0
+                'production_count': production_data['production_count'],
+                'target_production': production_data['target_production']
             })
             
             current_time = next_time
 
-            # Exit loop if we have exceeded the end_time
-            if current_time.time() >= end_time:
+            # Exit loop if current_time is beyond the end of the shift day
+            if current_time.date() > parsed_date or (current_time.date() == parsed_date and current_time.time() >= end_time):
                 break
             
         print("Successfully done")
@@ -487,5 +507,6 @@ class ShiftReportViewSet(viewsets.ViewSet):
         }
 
         return Response(response_data)
+
 
 
