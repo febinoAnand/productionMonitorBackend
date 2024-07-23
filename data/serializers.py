@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import RawData, ProblemData, LastProblemData,LogData, DeviceData, MachineData, ProductionData
 from events.serializers import *
 from devices.serializers import *
+from Userauth.models import UserDetail
 
 class RawSerializer(serializers.ModelSerializer):
     # deviceToken = serializers.CharField()
@@ -143,3 +144,16 @@ class SummaryReportSerializer(serializers.Serializer):
 class ShiftwiseReportSerializer(serializers.Serializer):
     date = serializers.DateField()
     machine_id = serializers.CharField()
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('username', 'is_active')
+
+class EmployeeDetailSerializer(serializers.ModelSerializer):
+    EmployeeName = serializers.CharField(source='extUser.username', read_only=True)
+    Status = serializers.BooleanField(source='extUser.is_active')
+
+    class Meta:
+        model = UserDetail
+        fields = ('EmployeeName', 'employee_id', 'mobile_no', 'registered_status', 'Status')

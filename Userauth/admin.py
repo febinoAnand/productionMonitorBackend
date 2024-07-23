@@ -9,7 +9,7 @@ class UnauthUserAdmin(admin.ModelAdmin):
 admin.site.register(UnauthUser, UnauthUserAdmin)
 
 class UserDetailAdmin(admin.ModelAdmin):
-    list_display = ["extUser","designation","mobile_no","device_id","auth_state","expiry_time"]
+    list_display = ["extUser","designation","mobile_no","employee_id","registered_status"]
 
 admin.site.register(UserDetail, UserDetailAdmin)
 

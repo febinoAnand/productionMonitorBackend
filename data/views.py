@@ -10,7 +10,7 @@ from .serializers import *
 from django.db.models import Sum
 from django.utils.dateparse import parse_date
 from datetime import datetime, timedelta
-
+from Userauth.models import UserDetail
 class RawGetMethod(views.APIView):
     schema = None
     def get(self,request):
@@ -707,3 +707,7 @@ class ListAchievementsViewSet(viewsets.ViewSet):
 
         # Return the response
         return Response(group_productions)
+
+class EmployeeDetailViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = UserDetail.objects.all()
+    serializer_class = EmployeeDetailSerializer

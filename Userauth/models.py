@@ -20,12 +20,14 @@ class UnauthUser(models.Model):
     otp_wrong_count = models.IntegerField(default=0, null=False, blank=False)
 
 class UserDetail(models.Model):
-    extUser = models.OneToOneField(User, on_delete=models.CASCADE,null=False,blank=False)
+    extUser = models.OneToOneField(User, on_delete=models.CASCADE, null=False, blank=False)
     designation = models.CharField(max_length=15, null=True, blank=False)
     mobile_no = models.CharField(unique=True, max_length=15, null=False, blank=False)
-    device_id = models.CharField(max_length=50, unique=True, null=False, blank=False)
-    auth_state = models.IntegerField(default=0, null=False, blank=False)
-    expiry_time = models.IntegerField(default =86400, null=False, blank=False)
+    employee_id = models.CharField(max_length=50, unique=True, null=False, blank=False)
+    registered_status = models.BooleanField(default=False, null=False, blank=False)
+    
+    def __str__(self):
+        return f'{self.extUser.username} - {self.mobile_no}'
 
 class Setting(models.Model):
     unAuth_user_expiry_time = models.IntegerField(default =900, null=False, blank=False)
