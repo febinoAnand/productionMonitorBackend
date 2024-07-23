@@ -330,6 +330,7 @@ class ProductionMonitorViewSet(viewsets.ViewSet):
                 'shift_name': shift.shift_name,
                 'shift_start_time': shift.start_time,
                 'shift_end_time': shift.end_time,
+                'shift_date': shift.create_date_time,
                 'groups': [],
                 'total_production_count_by_shifts': 0,
                 'total_target_count_by_shifts': 0
