@@ -148,12 +148,36 @@ class ShiftwiseReportSerializer(serializers.Serializer):
 class UserDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('username', 'is_active')
+        fields = ('id','username', 'is_active')
 
 class EmployeeDetailSerializer(serializers.ModelSerializer):
-    EmployeeName = serializers.CharField(source='extUser.username', read_only=True)
+    # Include User fields directly in the EmployeeDetailSerializer
+    id = serializers.IntegerField(source='extUser.id', read_only=True)
+    EmployeeName = serializers.CharField(source='extUser.username')
     Status = serializers.BooleanField(source='extUser.is_active')
-
+    
     class Meta:
         model = UserDetail
-        fields = ('EmployeeName', 'employee_id', 'mobile_no', 'registered_status', 'Status')
+        fields = ('id', 'EmployeeName', 'employee_id', 'mobile_no', 'registered_status', 'Status')
+    
+    def create(self, validated_data):
+        ext_user_data = validated_data.pop('extUser')
+        user = User.objects.create(**ext_user_data)
+        validated_data['extUser'] = user
+        user_detail = UserDetail.objects.create(**validated_data)
+        return user_detail
+    
+    def update(self, instance, validated_data):
+        ext_user_data = validated_data.pop('extUser')
+        user = instance.extUser
+        
+        instance.employee_id = validated_data.get('employee_id', instance.employee_id)
+        instance.mobile_no = validated_data.get('mobile_no', instance.mobile_no)
+        instance.registered_status = validated_data.get('registered_status', instance.registered_status)
+        instance.save()
+        
+        user.username = ext_user_data.get('username', user.username)
+        user.is_active = ext_user_data.get('is_active', user.is_active)
+        user.save()
+        
+        return instance

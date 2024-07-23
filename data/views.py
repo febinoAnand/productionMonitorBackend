@@ -709,6 +709,6 @@ class ListAchievementsViewSet(viewsets.ViewSet):
         # Return the response
         return Response(group_productions)
 
-class EmployeeDetailViewSet(viewsets.ReadOnlyModelViewSet):
+class EmployeeDetailViewSet(viewsets.ModelViewSet):
     queryset = UserDetail.objects.all()
     serializer_class = EmployeeDetailSerializer
