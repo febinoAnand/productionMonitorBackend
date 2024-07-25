@@ -184,6 +184,8 @@ class EmployeeDetailSerializer(serializers.ModelSerializer):
 
 
 class ShiftDataSerializer(serializers.Serializer):
+    date=serializers.DateField()
+    time = serializers.TimeField()
     shift_name = serializers.CharField()
     shift_start_time = serializers.TimeField()
     shift_end_time = serializers.TimeField()
@@ -193,5 +195,6 @@ class ShiftDataSerializer(serializers.Serializer):
 
 class TableReportSerializer(serializers.Serializer):
     machine_id=serializers.CharField()
-    date = serializers.DateField()
+    from_date = serializers.DateField()
+    to_date=serializers.DateField()
     shifts = ShiftDataSerializer(many=True)

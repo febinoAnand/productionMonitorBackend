@@ -720,13 +720,29 @@ class EmployeeDetailViewSet(viewsets.ModelViewSet):
 class TableReportViewSet(viewsets.ViewSet):
     def create(self, request):
         machine_id = request.data.get('machine_id')
-        date = request.data.get('date')
-
-        if not machine_id or not date:
-            return Response({"error": "machine_id and date are required parameters"}, status=400)
+        from_date = request.data.get('from_date')
+        to_date = request.data.get('to_date')
 
         
-        data = ProductionData.objects.filter(machine_id=machine_id, date=date)
+        if not machine_id:
+            return Response({"error": "machine_id is a required parameter"}, status=400)
+        if not from_date or not to_date:
+            return Response({"error": "from_date and to_date are required parameters"}, status=400)
+
+       
+        try:
+            from_date = datetime.strptime(from_date, '%Y-%m-%d').date()
+            to_date = datetime.strptime(to_date, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=400)
+
+        
+        if to_date < from_date:
+            return Response({"error": "to_date cannot be before from_date."}, status=400)
+
+       
+        data = ProductionData.objects.filter(machine_id=machine_id, date__range=(from_date, to_date))
+        # print(data)
         latest_data = data.values('shift_id').annotate(last_entry_time=Max('time'))
         
         shifts = []
@@ -734,17 +750,20 @@ class TableReportViewSet(viewsets.ViewSet):
             shift_data = data.filter(shift_id=entry['shift_id'], time=entry['last_entry_time']).first()
             if shift_data:
                 shifts.append({
+                    'date':shift_data.date,
+                    'time':shift_data.time,
                     'shift_name': shift_data.shift_name,
-                    'shift_start_time':shift_data.shift_start_time,
-                    'shift_end_time':shift_data.shift_end_time,
+                    'shift_start_time': shift_data.shift_start_time,
+                    'shift_end_time': shift_data.shift_end_time,
                     'production_count': shift_data.production_count,
                     'target_production': shift_data.target_production,
-                    'total':shift_data.target_production-shift_data.production_count
+                    'total': shift_data.target_production - shift_data.production_count
                 })
         
         response_data = {
-            'date': date,
-            'machine_id':machine_id,
+            'from_date': from_date,
+            'to_date': to_date,
+            'machine_id': machine_id,
             'shifts': shifts
         }
         
