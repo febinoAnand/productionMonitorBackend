@@ -184,17 +184,20 @@ class EmployeeDetailSerializer(serializers.ModelSerializer):
 
 
 class ShiftDataSerializer(serializers.Serializer):
-    date=serializers.DateField()
+    date = serializers.DateField()
     time = serializers.TimeField()
     shift_name = serializers.CharField()
     shift_start_time = serializers.TimeField()
     shift_end_time = serializers.TimeField()
     production_count = serializers.IntegerField()
     target_production = serializers.IntegerField()
-    total=serializers.IntegerField()
+    total = serializers.IntegerField()
+
+class MachineReportSerializer(serializers.Serializer):
+    machine_id = serializers.CharField()
+    shifts = ShiftDataSerializer(many=True)
 
 class TableReportSerializer(serializers.Serializer):
-    machine_id=serializers.CharField()
     from_date = serializers.DateField()
-    to_date=serializers.DateField()
-    shifts = ShiftDataSerializer(many=True)
+    to_date = serializers.DateField()
+    machines = MachineReportSerializer(many=True)
