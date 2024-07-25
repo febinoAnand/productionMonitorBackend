@@ -23,7 +23,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserDetail
-        fields = ('userdetail_id', 'user_id', 'usermod', 'designation', 'mobile_no', 'device_id', 'auth_state', 'expiry_time', 'userActive')
+        fields = ('userdetail_id', 'user_id', 'usermod', 'designation', 'mobile_no','userActive')
     
     def update(self, instance, validated_data):
         ext_user_data = validated_data.pop('extUser', None)

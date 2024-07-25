@@ -301,7 +301,7 @@ def on_message(mqtt_client, userdata, msg):
                     shift_start_time=shift_instance.start_time,
                     shift_end_time=shift_instance.end_time,
                     target_production=machine.production_per_hour,  
-                    machine_id=machine.id,
+                    machine_id=machine.machine_id,
                     machine_name=machine.machine_name,
                     production_count=production_count,
                     data_id=log_data.id

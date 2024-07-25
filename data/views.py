@@ -11,6 +11,9 @@ from django.db.models import Sum
 from django.utils.dateparse import parse_date
 from datetime import datetime, timedelta
 from Userauth.models import UserDetail
+from django.db.models import Max
+
+
 class RawGetMethod(views.APIView):
     schema = None
     def get(self,request):
@@ -712,3 +715,38 @@ class ListAchievementsViewSet(viewsets.ViewSet):
 class EmployeeDetailViewSet(viewsets.ModelViewSet):
     queryset = UserDetail.objects.all()
     serializer_class = EmployeeDetailSerializer
+    
+
+class TableReportViewSet(viewsets.ViewSet):
+    def create(self, request):
+        machine_id = request.data.get('machine_id')
+        date = request.data.get('date')
+
+        if not machine_id or not date:
+            return Response({"error": "machine_id and date are required parameters"}, status=400)
+
+        
+        data = ProductionData.objects.filter(machine_id=machine_id, date=date)
+        latest_data = data.values('shift_id').annotate(last_entry_time=Max('time'))
+        
+        shifts = []
+        for entry in latest_data:
+            shift_data = data.filter(shift_id=entry['shift_id'], time=entry['last_entry_time']).first()
+            if shift_data:
+                shifts.append({
+                    'shift_name': shift_data.shift_name,
+                    'shift_start_time':shift_data.shift_start_time,
+                    'shift_end_time':shift_data.shift_end_time,
+                    'production_count': shift_data.production_count,
+                    'target_production': shift_data.target_production,
+                    'total':shift_data.target_production-shift_data.production_count
+                })
+        
+        response_data = {
+            'date': date,
+            'machine_id':machine_id,
+            'shifts': shifts
+        }
+        
+        serializer = TableReportSerializer(response_data)
+        return Response(serializer.data)

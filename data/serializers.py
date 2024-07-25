@@ -181,3 +181,17 @@ class EmployeeDetailSerializer(serializers.ModelSerializer):
         user.save()
         
         return instance
+
+
+class ShiftDataSerializer(serializers.Serializer):
+    shift_name = serializers.CharField()
+    shift_start_time = serializers.TimeField()
+    shift_end_time = serializers.TimeField()
+    production_count = serializers.IntegerField()
+    target_production = serializers.IntegerField()
+    total=serializers.IntegerField()
+
+class TableReportSerializer(serializers.Serializer):
+    machine_id=serializers.CharField()
+    date = serializers.DateField()
+    shifts = ShiftDataSerializer(many=True)
