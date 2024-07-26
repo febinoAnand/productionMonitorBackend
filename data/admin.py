@@ -44,11 +44,12 @@ class LogDataAdmin(admin.ModelAdmin):
 
 class DeviceDataAdmin(admin.ModelAdmin):
     list_display = ('device_id', 'date', 'time', 'protocol', 'topic_api', 'create_date_time')
-    search_fields = ('device_id__deviceID', 'protocol', 'topic_api')
+    search_fields = ('device_id__device_token', 'protocol', 'topic_api')
+
 
 class MachineDataAdmin(admin.ModelAdmin):
     list_display = ('machine_id', 'device_id', 'date', 'time', 'create_date_time')
-    search_fields = ('machine_id__machineID', 'device_id__deviceID')
+    search_fields = ('machine_id__machine_id', 'device_id__device_token')
 
 class ProductionDataAdmin(admin.ModelAdmin):
     list_display = ('shift_name', 'date', 'time', 'machine_id', 'target_production', 'production_count')
