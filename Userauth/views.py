@@ -920,20 +920,21 @@ class GroupViewSet(viewsets.ModelViewSet):
 
 class LoginView(APIView):
     def post(self, request, *args, **kwargs):
-        # Check valid JSON data in request
-        try:
-            jsondata = json.loads(request.body)
-        except Exception as e:
-            print(e)  # TODO: save the exception in Log File
-            return HttpResponseNotFound()
+        print("Received a POST request to /Userauth/userlogin/")
+
+        # Use request.data to handle the request body
+        jsondata = request.data
+        print(f"Parsed JSON data: {jsondata}")
 
         # Check app_token validity
         if "app_token" not in jsondata or jsondata["app_token"] != settings.APP_TOKEN:
+            print("Invalid or missing app_token")
             return HttpResponseNotFound()
 
         # Validate the POST data
         serializer = LoginSerializer(data=jsondata)
         if not serializer.is_valid():
+            print("Invalid POST data: ", serializer.errors)
             return HttpResponseBadRequest()
 
         username = serializer.validated_data['username']
@@ -941,32 +942,49 @@ class LoginView(APIView):
         device_id = serializer.validated_data['device_id']
         notification_id = serializer.validated_data['notification_id']
 
+        print(f"Username: {username}, Password: {password}, Device ID: {device_id}, Notification ID: {notification_id}")
+
         user = User.objects.filter(username=username).first()
+        print(f"User found: {user}")
 
         if user and not user.is_active:
+            print("User account is inactive")
             return Response({'status': 'INACTIVE', 'message': 'Your Account is Inactive'}, status=status.HTTP_200_OK)
 
         user_detail = UserDetail.objects.filter(extUser=user).first()
+        print(f"User detail found: {user_detail}")
+
         if user_detail and device_id in user_detail.device_id:
             if user and user.check_password(password):
                 token, created = Token.objects.get_or_create(user=user)
+                print(f"Token created: {token.key}, Token status: {'created' if created else 'retrieved'}")
 
                 notification_auth = NotificationAuth.objects.filter(user_to_auth=user).first()
                 if notification_auth:
                     notification_auth.noti_token = notification_id
                     notification_auth.save()
+                    print(f"Notification auth updated for user: {user}")
                 else:
                     NotificationAuth.objects.create(user_to_auth=user, noti_token=notification_id)
+                    print(f"Notification auth created for user: {user}")
+
+                user_auth_setting = UserAuthSetting.objects.first()
+                if user_auth_setting:
+                    user_expiry_time = str(user_auth_setting.all_user_expiry_time)
+                else:
+                    user_expiry_time = "Not Set"
 
                 return Response({
                     'status': 'OK',
                     'token': token.key,
                     'message': 'Login successful',
-                    'user_expiry_time':str(UserAuthSetting.objects.first().all_user_expiry_time)
-                },status=status.HTTP_200_OK)
+                    'user_expiry_time': user_expiry_time
+                }, status=status.HTTP_200_OK)
 
+            print("Invalid credentials")
             return Response({'status': 'INVALID', 'message': 'Invalid Credentials'}, status=status.HTTP_200_OK)
         else:
+            print("Device mismatch or user detail not found")
             return Response({'status': 'DEVICE_MISMATCH', 'message': 'Account already used in another device. Redo Registration'}, status=status.HTTP_200_OK)
 
 #                                    #user_Logout_view#

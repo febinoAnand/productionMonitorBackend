@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'Userauth',
     'rest_framework.authtoken',
     'mqttConnection',
+   
 
     # 'django_extensions',
 ]
@@ -162,7 +163,7 @@ STATIC_ROOT = os.path.join(BASE_DIR,'static')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Mobile app settings
-APP_TOKEN = "ddab9b66-1a0d-4b7e-8b0c-476a0ee6cfc5"
+APP_TOKEN = "550e8400-e29b-41d4-a716-446655440000"
 
 
 CSRF_TRUSTED_ORIGINS = ['https://*.127.0.0.1','https://productionb.univa.cloud','https://production.univa.cloud']

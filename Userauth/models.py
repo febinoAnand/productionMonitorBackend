@@ -25,6 +25,7 @@ class UserDetail(models.Model):
     mobile_no = models.CharField(unique=True, max_length=15, null=False, blank=False)
     employee_id = models.CharField(max_length=50, unique=True, null=False, blank=False)
     registered_status = models.BooleanField(default=False, null=False, blank=False)
+    device_id = models.CharField(unique=True,max_length=50, null=False, blank=False)
     
     def __str__(self):
         return f'{self.extUser.username} - {self.mobile_no}'
