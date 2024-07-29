@@ -617,7 +617,7 @@ class UserRegisterView(views.APIView):
         #getting currentDate and Time
         currentDate = datetime.now().strftime("%Y-%m-%d")
         currentTime = datetime.now().strftime("%H:%M:%S")
-        currentDateTime = datetime.now()
+        currentDateTime = timezone.now()
         # print (currentDate,currentTime)
 
         ########################### POST FLOW  END HERE ##################################
