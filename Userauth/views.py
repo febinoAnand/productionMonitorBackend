@@ -40,6 +40,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.contrib.auth import authenticate, login
 from rest_framework.permissions import IsAuthenticated,IsAdminUser
+from django.utils import timezone
 
 # Create your views here.
 
@@ -98,7 +99,7 @@ class UserAuthAPI(views.APIView):
         #getting currentDate and Time
         currentDate = datetime.now().strftime("%Y-%m-%d")
         currentTime = datetime.now().strftime("%H:%M:%S")
-        currentDateTime = datetime.now()
+        currentDateTime = timezone.now()
         # print (currentDate,currentTime)
 
 ########################### POST FLOW  END HERE ##################################
@@ -393,7 +394,7 @@ class UserAuthPrompt(views.APIView):
         #getting currentDate and Time
         currentDate = datetime.now().strftime("%Y-%m-%d")
         currentTime = datetime.now().strftime("%H:%M:%S")
-        currentDateTime = datetime.now()
+        currentDateTime = timezone.now()
         # print (currentDate,currentTime)
 
         ########################### POST FLOW  END HERE ##################################
@@ -496,7 +497,7 @@ class UserVerifyView(views.APIView):
         #getting currentDate and Time
         currentDate = datetime.now().strftime("%Y-%m-%d")
         currentTime = datetime.now().strftime("%H:%M:%S")
-        currentDateTime = datetime.now()
+        currentDateTime = timezone.now()
         # print (currentDate,currentTime)
 
         ########################### POST FLOW  END HERE ##################################
@@ -804,7 +805,7 @@ class ResendOTPView(views.APIView):
         #getting currentDate and Time
         currentDate = datetime.now().strftime("%Y-%m-%d")
         currentTime = datetime.now().strftime("%H:%M:%S")
-        currentDateTime = datetime.now()
+        currentDateTime = timezone.now()
         # print (currentDate,currentTime)
 
         ########################### POST FLOW  END HERE ##################################
