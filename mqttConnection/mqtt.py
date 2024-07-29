@@ -254,7 +254,7 @@ def on_message(mqtt_client, userdata, msg):
                 #Step 6: Extract production count
                 production_count = message_data.get(machine_id, 0)
                 print(f"Extracted production count: {production_count} for machine_id: {machine_id}")
-                last_production_data = ProductionData.objects.filter(machine_id=machine.id).order_by('-date', '-time').first()
+                last_production_data = ProductionData.objects.filter(machine_id=machine.machine_id).order_by('-date', '-time').first()
                 print("Queried last_production_data:", last_production_data)
 
                 if last_production_data:
