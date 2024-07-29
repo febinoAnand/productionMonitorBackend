@@ -201,3 +201,17 @@ class TableReportSerializer(serializers.Serializer):
     from_date = serializers.DateField()
     to_date = serializers.DateField()
     machines = MachineReportSerializer(many=True)
+
+class MachineSerializer(serializers.Serializer):
+    machine_id = serializers.CharField()
+    machine_name = serializers.CharField()
+    shifts = ShiftDataSerializer(many=True)
+
+class GroupDataSerializer(serializers.Serializer):
+    group_name = serializers.CharField()
+    machines = MachineSerializer(many=True)
+
+class ProductionTableSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    groups = GroupDataSerializer(many=True)
+    

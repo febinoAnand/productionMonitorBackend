@@ -771,3 +771,64 @@ class TableReportViewSet(viewsets.ViewSet):
 
         serializer = TableReportSerializer(response_data)
         return Response(serializer.data)
+    
+
+class GroupWiseMachineDataViewSet(viewsets.ViewSet):
+    def create(self, request):
+        date = request.data.get('date')
+        
+        if not date:
+            return Response({"error": "date is a required parameter"}, status=400)
+        
+        try:
+            date = datetime.strptime(date, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=400)
+        
+        # Get all groups
+        groups = MachineGroup.objects.all()
+        group_data = []
+
+        for group in groups:
+            machines = group.machine_list.all()
+            machine_data = []
+
+            for machine in machines:
+                # Get the last data entry for each shift on the specified date
+                data = ProductionData.objects.filter(machine_id=machine.id, date=date)
+                latest_data = data.values('shift_id').annotate(last_entry_time=Max('time'))
+                
+                shifts = []
+                for entry in latest_data:
+                    shift_data = data.filter(shift_id=entry['shift_id'], time=entry['last_entry_time']).first()
+                    if shift_data:
+                        shifts.append({
+                            'date': shift_data.date,
+                            'time': shift_data.time,
+                            'shift_name': shift_data.shift_name,
+                            'shift_start_time': shift_data.shift_start_time,
+                            'shift_end_time': shift_data.shift_end_time,
+                            'production_count': shift_data.production_count,
+                            'target_production': shift_data.target_production,
+                            'total': shift_data.target_production - shift_data.production_count,
+                            'machine_id': shift_data.machine_id
+                        })
+                
+                machine_data.append({
+                    'machine_id': machine.id,
+                    'machine_name': machine.machine_name,
+                    'shifts': shifts
+                })
+            
+            group_data.append({
+                'group_name': group.group_name,
+                'machines': machine_data
+            })
+        
+        response_data = {
+            'date': date,
+            'groups': group_data
+        }
+        
+        serializer = ProductionTableSerializer(response_data)
+        return Response(serializer.data)
