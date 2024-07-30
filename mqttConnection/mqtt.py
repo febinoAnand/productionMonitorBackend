@@ -107,7 +107,7 @@ def on_message(mqtt_client, userdata, msg):
                 "status": "Duplicate Timestamp",
                 "message": "Timestamp already exists",
                 "Device Token": device_token,
-                "timestamp": unique_id
+                "timestamp":message_data['timestamp']
             }
             publish_response(mqtt_client, device_token, response, is_error=True)
             return
