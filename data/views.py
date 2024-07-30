@@ -301,10 +301,10 @@ class DashboardViewSet(viewsets.ViewSet):
             }
 
             for machine in machines:
-                production_data = ProductionData.objects.filter(machine_id=machine.id).order_by('-date', '-time').first()
+                production_data = ProductionData.objects.filter(machine_id=machine.machine_id).order_by('-date', '-time').first()
                 
                 machine_data = {
-                    'machine_id': machine.id,
+                    'machine_id': machine.machine_id,
                     'machine_name': machine.machine_name,
                     'production_count': production_data.production_count if production_data else 0,
                     'target_production': production_data.target_production if production_data else 0,
