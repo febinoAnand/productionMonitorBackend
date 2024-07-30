@@ -457,7 +457,7 @@ class ShiftReportViewSet(viewsets.ViewSet):
         
         production_data_all = ProductionData.objects.filter(
             date=parsed_date,
-            machine_id=machine.id,
+            machine_id=machine.machine_id,
         )
         print("Production data for this date and machine:", production_data_all)
         
