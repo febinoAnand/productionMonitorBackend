@@ -381,8 +381,8 @@ class ProductionMonitorViewSet(viewsets.ViewSet):
                             'cumulative_target_production': target_production
                         }
                     else:
-                        cumulative_machine_data[machine.id]['cumulative_production_count'] += production_count
-                        cumulative_machine_data[machine.id]['cumulative_target_production'] += target_production
+                        cumulative_machine_data[machine.machine_id]['cumulative_production_count'] += production_count
+                        cumulative_machine_data[machine.machine_id]['cumulative_target_production'] += target_production
 
                 shift_data['groups'].append(group_data)
                 shift_data['total_production_count_by_shifts'] += group_data['total_production_count_by_group']
