@@ -37,7 +37,6 @@ class TokenAdmin(admin.ModelAdmin):
 admin.site.register(Token, TokenAdmin)
 
 
-
 class DeviceDetailsAdmin(admin.ModelAdmin):
     list_display = ('device_name', 'device_token', 'hardware_version', 'software_version', 'protocol', 'create_date_time')
     search_fields = ('device_name', 'device_token', 'protocol')
@@ -46,14 +45,19 @@ class MachineDetailsAdmin(admin.ModelAdmin):
     list_display = ('machine_id', 'line', 'manufacture', 'year', 'device', 'create_date_time')
     search_fields = ('machine_id', 'line', 'manufacture', 'year')
 
-class MachineGroupAdmin(admin.ModelAdmin):
-    list_display = ('group_name',)
-    search_fields = ('group_name',)
-    filter_horizontal = ('machine_list',)  
 
 class ShiftTimingsAdmin(admin.ModelAdmin):
     list_display = ('shift_name', 'start_time', 'end_time', 'create_date_time')
     search_fields = ('shift_name',)
+
+class MachineGroupAdmin(admin.ModelAdmin):
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+
+    def save_related(self, request, form, formsets, change):
+        form.instance.save()  
+        super().save_related(request, form, formsets, change)
+        form.instance.clean() 
 
 admin.site.register(DeviceDetails, DeviceDetailsAdmin)
 admin.site.register(MachineDetails, MachineDetailsAdmin)

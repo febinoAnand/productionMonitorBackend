@@ -62,10 +62,20 @@ class MachineDetails(models.Model):
 
 class MachineGroup(models.Model):
     machine_list = models.ManyToManyField(MachineDetails)
-    group_name = models.CharField(max_length=45, blank=False)
+    group_name = models.CharField(max_length=45, unique=True)
 
     def __str__(self):
         return self.group_name
+
+    def clean(self):
+        if self.pk:  # only run validation if the instance has a primary key
+            for machine in self.machine_list.all():
+                if MachineGroup.objects.filter(machine_list=machine).exclude(id=self.id).exists():
+                    raise ValidationError(f'The machine {machine.machine_name} is already assigned to another group.')
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)  # Save the instance first to get an ID
+        self.clean()  # Val
 
 class ShiftTimings(models.Model):
     _id = models.AutoField(primary_key=True)

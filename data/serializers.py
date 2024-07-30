@@ -208,6 +208,7 @@ class MachineSerializer(serializers.Serializer):
     shifts = ShiftDataSerializer(many=True)
 
 class GroupDataSerializer(serializers.Serializer):
+    group_id = serializers.IntegerField()
     group_name = serializers.CharField()
     machines = MachineSerializer(many=True)
 

@@ -796,7 +796,6 @@ class GroupWiseMachineDataViewSet(viewsets.ViewSet):
             for machine in machines:
                 # Get the last data entry for each shift on the specified date
                 data = ProductionData.objects.filter(machine_id=machine.machine_id, date=date)
-                print("data",data)
                 latest_data = data.values('shift_id').annotate(last_entry_time=Max('time'))
                 
                 shifts = []
@@ -816,13 +815,14 @@ class GroupWiseMachineDataViewSet(viewsets.ViewSet):
                         })
                 
                 machine_data.append({
-                    'machine_id': machine.id,
+                    'machine_id': machine.machine_id,
                     'machine_name': machine.machine_name,
                     'shifts': shifts
                 })
             
             group_data.append({
                 'group_name': group.group_name,
+                'group_id': group.id,
                 'machines': machine_data
             })
         

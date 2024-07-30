@@ -66,9 +66,17 @@ class GetTokenSerializer(serializers.Serializer):
     devicePassword = serializers.CharField()
 
 class MachineGroupSerializer(serializers.ModelSerializer):
+    machine_list = serializers.PrimaryKeyRelatedField(many=True, queryset=MachineDetails.objects.all())
+    # print(machine_list)
     class Meta:
         model = MachineGroup
-        fields = ['id','machine_list', 'group_name']
+        fields = ['group_name', 'machine_list']
+
+    def validate_machine_list(self, value):
+        for machine in value:
+            if MachineGroup.objects.filter(machine_list=machine).exists():
+                raise serializers.ValidationError(f'The machine {machine.machine_name} is already assigned to another group.')
+        return value
 
 class ShiftTimingsSerializer(serializers.ModelSerializer):
     class Meta:
