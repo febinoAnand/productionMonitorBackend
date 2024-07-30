@@ -23,7 +23,7 @@ class UserDetail(models.Model):
     extUser = models.OneToOneField(User, on_delete=models.CASCADE, null=False, blank=False)
     designation = models.CharField(max_length=15, null=True, blank=False)
     mobile_no = models.CharField(unique=True, max_length=15, null=False, blank=False)
-    employee_id = models.CharField(max_length=50, unique=True, null=False, blank=False)
+    employee_id = models.CharField(max_length=50, unique=True, null=True, blank=True)
     registered_status = models.BooleanField(default=False, null=False, blank=False)
     device_id = models.CharField(unique=True,max_length=50, null=False, blank=False)
     
