@@ -206,6 +206,7 @@ class MachineSerializer(serializers.Serializer):
     machine_id = serializers.CharField()
     machine_name = serializers.CharField()
     shifts = ShiftDataSerializer(many=True)
+    
 
 class GroupDataSerializer(serializers.Serializer):
     group_id = serializers.IntegerField()

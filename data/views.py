@@ -833,3 +833,69 @@ class GroupWiseMachineDataViewSet(viewsets.ViewSet):
         
         serializer = ProductionTableSerializer(response_data)
         return Response(serializer.data)
+    
+class GroupMachineDataViewSet(viewsets.ViewSet):
+    def list(self, request):
+        today = datetime.today().date()
+        
+        groups = MachineGroup.objects.all()
+        group_data = []
+
+        for group in groups:
+            machines = group.machine_list.all()
+            machine_data = []
+
+            for machine in machines:
+                # Get the shift timings
+                shift_timings = ShiftTimings.objects.all()
+                shifts = []
+
+                for shift in shift_timings:
+                    shift_data = ProductionData.objects.filter(
+                        machine_id=machine.machine_id, 
+                        date=today, 
+                        shift_id=shift._id
+                    ).order_by('-time').first()
+
+                    if shift_data:
+                        shifts.append({
+                            'date': shift_data.date,
+                            'time': shift_data.time,
+                            'shift_name': shift.shift_name,
+                            'shift_start_time': shift.start_time,
+                            'shift_end_time': shift.end_time,
+                            'production_count': shift_data.production_count,
+                            'target_production': shift_data.target_production,
+                            'total': shift_data.target_production - shift_data.production_count
+                        })
+                    else:
+                        shifts.append({
+                            'date': today,
+                            'time': None,
+                            'shift_name': shift.shift_name,
+                            'shift_start_time': shift.start_time,
+                            'shift_end_time': shift.end_time,
+                            'production_count': 0,
+                            'target_production': 0,
+                            'total': 0
+                        })
+                
+                machine_data.append({
+                    'machine_id': machine.machine_id,
+                    'machine_name': machine.machine_name,
+                    'shifts': shifts
+                })
+            
+            group_data.append({
+                'group_id': group.id,
+                'group_name': group.group_name,
+                'machines': machine_data
+            })
+        
+        response_data = {
+            'date': today,
+            'groups': group_data
+        }
+        
+        return Response(response_data)
+        

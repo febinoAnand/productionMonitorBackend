@@ -19,7 +19,8 @@ from .views import (
     ListAchievementsViewSet,
     EmployeeDetailViewSet,
     TableReportViewSet,
-    GroupWiseMachineDataViewSet
+    GroupWiseMachineDataViewSet,
+    GroupMachineDataViewSet
 )
 from rest_framework import routers
 
@@ -40,6 +41,7 @@ router.register(r'list_achievements', ListAchievementsViewSet, basename='list_ac
 router.register(r'employee-Detail', EmployeeDetailViewSet,basename="employee-Detail")
 router.register(r'table-report', TableReportViewSet, basename='TableReportViewSet')
 router.register(r'group-wise-machine-data', GroupWiseMachineDataViewSet, basename='group-wise-machine-data')
+router.register(r'group-machine-data', GroupMachineDataViewSet, basename='group-machine-data')
 
 urlpatterns = [
     path('livedata', LiveDataViewset.as_view()),
