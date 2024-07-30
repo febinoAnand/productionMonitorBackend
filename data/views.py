@@ -351,7 +351,7 @@ class ProductionMonitorViewSet(viewsets.ViewSet):
 
                 for machine in machines:
                     latest_production_data = ProductionData.objects.filter(
-                        machine_id=machine.id,
+                        machine_id=machine.machine_id,
                         shift_id=shift._id
                     ).order_by('-date', '-time').first()
 
@@ -363,7 +363,7 @@ class ProductionMonitorViewSet(viewsets.ViewSet):
                         target_production = 0
 
                     machine_data = {
-                        'machine_id': machine.id,
+                        'machine_id': machine.machine_id,
                         'machine_name': machine.machine_name,
                         'production_count': production_count,
                         'target_production': target_production
@@ -374,8 +374,8 @@ class ProductionMonitorViewSet(viewsets.ViewSet):
                     group_data['total_target_count_by_group'] += target_production
 
                     if machine.id not in cumulative_machine_data:
-                        cumulative_machine_data[machine.id] = {
-                            'machine_id': machine.id,
+                        cumulative_machine_data[machine.machine_id] = {
+                            'machine_id': machine.machine_id,
                             'machine_name': machine.machine_name,
                             'cumulative_production_count': production_count,
                             'cumulative_target_production': target_production
