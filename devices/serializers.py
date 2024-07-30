@@ -65,18 +65,52 @@ class GetTokenSerializer(serializers.Serializer):
     deviceID = serializers.CharField()
     devicePassword = serializers.CharField()
 
+class MachineDetailsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MachineDetails
+        fields = ['machine_id', 'machine_name']
+
+class MachineDetailsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MachineDetails
+        fields = ['machine_id', 'machine_name']
+
+class MachineDetailsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MachineDetails
+        fields = ['machine_id', 'machine_name']
+
 class MachineGroupSerializer(serializers.ModelSerializer):
-    machine_list = serializers.PrimaryKeyRelatedField(many=True, queryset=MachineDetails.objects.all())
-    # print(machine_list)
+    machine_list = serializers.PrimaryKeyRelatedField(
+        queryset=MachineDetails.objects.all(), 
+        many=True, 
+        write_only=True
+    )
+    machines = MachineDetailsSerializer(source='machine_list', many=True, read_only=True)
+    group_id = serializers.IntegerField(source='id', read_only=True)
+
     class Meta:
         model = MachineGroup
-        fields = ['group_name', 'machine_list']
-
+        fields = ['group_id', 'group_name', 'machine_list', 'machines']
+    
     def validate_machine_list(self, value):
         for machine in value:
             if MachineGroup.objects.filter(machine_list=machine).exists():
                 raise serializers.ValidationError(f'The machine {machine.machine_name} is already assigned to another group.')
         return value
+    
+    def create(self, validated_data):
+        machine_ids = validated_data.pop('machine_list')
+        machine_group = MachineGroup.objects.create(**validated_data)
+        machine_group.machine_list.set(machine_ids)
+        return machine_group
+
+    def update(self, instance, validated_data):
+        machine_ids = validated_data.pop('machine_list')
+        instance.group_name = validated_data.get('group_name', instance.group_name)
+        instance.save()
+        instance.machine_list.set(machine_ids)
+        return instance
 
 class ShiftTimingsSerializer(serializers.ModelSerializer):
     class Meta:
