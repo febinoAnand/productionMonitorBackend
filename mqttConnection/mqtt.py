@@ -135,8 +135,8 @@ def on_message(mqtt_client, userdata, msg):
 
                 response = {
                     "status": "OK",
+                    "device_token": device_token,
                     "cmd_response": current_timestamp,
-                    "device_token": device_token
                 }
                 publish_response(mqtt_client, device_token, response)
 
@@ -166,8 +166,8 @@ def on_message(mqtt_client, userdata, msg):
                         response = {
                             "status": "INVALID TIMESTAMP",
                             "message": "Timestamp is less than first data",
-                            "timestamp": timestamp,
-                            "device_token": device_token
+                            "device_token": device_token,
+                            "timestamp": timestamp
                         }
                         publish_response(mqtt_client, device_token, response, is_error=True)
                         print('Timestamp is less than the first data in the log')
@@ -181,8 +181,8 @@ def on_message(mqtt_client, userdata, msg):
                 response = {
                     "status": "DEVICE NOT FOUND",
                     "message": "Device not found",
-                    "timestamp": timestamp,
-                    "device_token": device_token
+                    "device_token": device_token,
+                    "timestamp": timestamp
                 }
                 publish_response(mqtt_client, device_token, response, is_error=True)
                 print('Device token mismatch')
@@ -194,8 +194,8 @@ def on_message(mqtt_client, userdata, msg):
                 response = {
                     "status": "MACHINE ID ERROR",
                     "message": "Machine ID not found in message data",
-                    "timestamp": timestamp,
-                    "device_token": device_token
+                    "device_token": device_token,
+                    "timestamp": timestamp
                 }
                 publish_response(mqtt_client, device_token, response, is_error=True)
                 print('Machine ID not found in message data')
@@ -218,8 +218,8 @@ def on_message(mqtt_client, userdata, msg):
                 response = {
                     "status": "DATA SAVE ERROR",
                     "message": f"Error saving device data: {e}",
-                    "timestamp": timestamp,
-                    "device_token": device_token
+                    "device_token": device_token,
+                    "timestamp": timestamp
                 }
                 publish_response(mqtt_client, device_token, response, is_error=True)
                 print(f'Error saving device data to database: {e}')
@@ -231,8 +231,8 @@ def on_message(mqtt_client, userdata, msg):
                 response = {
                     "status": "MACHINE NOT FOUND",
                     "message": "Machine not found with given ID",
-                    "timestamp": timestamp,
-                    "device_token": device_token
+                    "device_token": device_token,
+                    "timestamp": timestamp
                 }
                 publish_response(mqtt_client, device_token, response, is_error=True)
                 print('Machine ID mismatch')
@@ -263,9 +263,9 @@ def on_message(mqtt_client, userdata, msg):
                         response = {
                             "status": "PRODUCTION COUNT ERROR",
                             "message": "Production count is less than last recorded count",
-                            "timestamp": timestamp,
                             "device_token": device_token,
-                            "production_count": production_count
+                            "production_count": production_count,
+                            "timestamp": timestamp
                         }
                         publish_response(mqtt_client, device_token, response, is_error=True)
                         print('Production count is less than the last recorded count')
@@ -285,8 +285,8 @@ def on_message(mqtt_client, userdata, msg):
                     response = {
                         "status": "SHIFT ERROR",
                         "message": "No matching shift found for the given time",
-                        "timestamp": message_data['timestamp'],
-                        "device_token": message_data.get('device_token', '')
+                        "device_token": message_data.get('device_token', ''),
+                        "timestamp": message_data['timestamp']
                     }
                     publish_response(mqtt_client, message_data.get('device_token', ''), response, is_error=True)
                     return
@@ -313,8 +313,8 @@ def on_message(mqtt_client, userdata, msg):
                 response = {
                     "status": "OK",
                     "message": "Successfully data saved",
-                    "timestamp": timestamp,
-                    "device_token": device_token
+                    "device_token": device_token,
+                    "timestamp": timestamp
                 }
                 publish_response(mqtt_client, device_token, response)
 
@@ -322,8 +322,8 @@ def on_message(mqtt_client, userdata, msg):
                 response = {
                     "status": "DATA SAVE ERROR",
                     "message": f"Error production data: {e}",
+                    "device_token": device_token,
                     "timestamp": timestamp,
-                    "device_token": device_token
                 }
                 publish_response(mqtt_client, device_token, response, is_error=True)
                 print(f'Error saving machine or production data to database: {e}')
@@ -340,8 +340,8 @@ def on_message(mqtt_client, userdata, msg):
         response = {
             "status": "VALUE ERROR",
             "message": str(e),
-            "timestamp": timestamp,
-            "device_token": device_token
+            "device_token": device_token,
+            "timestamp": timestamp
         }
         publish_response(mqtt_client, device_token, response, is_error=True)
         print(f'Error processing message: {e}')
