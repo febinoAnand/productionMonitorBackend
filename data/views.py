@@ -881,6 +881,7 @@ class GroupMachineDataViewSet(viewsets.ViewSet):
                         })
                 
                 machine_data.append({
+                    'id': machine.id,
                     'machine_id': machine.machine_id,
                     'machine_name': machine.machine_name,
                     'shifts': shifts
