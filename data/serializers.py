@@ -64,22 +64,22 @@ class LastProblemDataSerializer(serializers.ModelSerializer):
 class LogDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = LogData
-        fields = ['date', 'time', 'received_data',  'protocol',  'topic_api', 'unique_id' ]
+        fields = ['date', 'time', 'received_data',  'protocol',  'topic_api', 'data_id' ]
 
 class DeviceDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeviceData
-        fields = ['date', 'time',  'data', 'device_id', 'protocol', 'topic_api', 'create_date_time', 'update_date_time', 'log_data_id' ]
+        fields = ['date', 'time',  'data', 'device_id', 'protocol', 'topic_api', 'create_date_time', 'update_date_time', 'log_data_id','timestamp' ]
 
 class MachineDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = MachineData
-        fields = [  'date', 'time',  'machine_id', 'data', 'device_id', 'create_date_time', 'update_date_time', 'data_id']
+        fields = [  'date', 'time',  'machine_id', 'data', 'device_id', 'create_date_time', 'update_date_time', 'data_id','timestamp']
 
 class ProductionDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductionData
-        fields = ['date', 'time', 'shift_id', 'shift_name', 'shift_start_time', 'shift_end_time', 'target_production', 'machine_id', 'machine_name', 'production_count', 'data_id']
+        fields = ['date', 'time','shift_number', 'shift_name',  'target_production', 'machine_id', 'machine_name', 'production_count','production_date', 'data_id']
         
 
 

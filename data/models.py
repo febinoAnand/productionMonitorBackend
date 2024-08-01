@@ -67,10 +67,10 @@ class LogData(models.Model):
     received_data = models.CharField(max_length=2000, null=True, blank=True)
     protocol = models.CharField(max_length=15, null=True, blank=True)
     topic_api = models.CharField(max_length=100, null=True, blank=True)
-    unique_id = models.CharField(max_length=50, unique=True, blank=False)
+    data_id = models.CharField(max_length=50, unique=False, blank=True)
 
     def __str__(self):
-        return self.unique_id
+        return self.received_data
     
 
 class DeviceData(models.Model):
@@ -82,6 +82,7 @@ class DeviceData(models.Model):
     topic_api = models.CharField(max_length=100, null=True, blank=True)
     create_date_time = models.DateTimeField(auto_now_add=True)
     update_date_time = models.DateTimeField(auto_now=True)
+    timestamp=models.CharField(max_length=50, unique=True, blank=False,null=True)
     log_data_id = models.ForeignKey(LogData, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -95,6 +96,7 @@ class MachineData(models.Model):
     device_id = models.ForeignKey(DeviceDetails, on_delete=models.CASCADE)
     create_date_time = models.DateTimeField(auto_now_add=True)
     update_date_time = models.DateTimeField(auto_now=True)
+    timestamp=models.CharField(max_length=50, unique=True, blank=False,null=True)
     data_id = models.ForeignKey(LogData, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -103,18 +105,17 @@ class MachineData(models.Model):
 class ProductionData(models.Model):
     date = models.DateField(blank=False)
     time = models.TimeField(blank=False)
-    shift_id = models.IntegerField(blank=False)
-    shift_name = models.CharField(max_length=45, blank=False)
-    shift_start_time = models.TimeField(blank=False)
-    shift_end_time = models.TimeField(blank=False)
+    shift_number = models.IntegerField(blank=False,null=True)
+    shift_name = models.CharField(max_length=45, blank=True, null=True)
     target_production = models.IntegerField(blank=False)
     machine_id = models.CharField(max_length=45, blank=False)  
     machine_name = models.CharField(max_length=45, blank=False)
     production_count = models.IntegerField(blank=False)
+    production_date=models.DateField(blank=False,null=True)
     data_id = models.IntegerField(blank=False)  
 
     def __str__(self):
-        return self.shift_name
+        return self.shift_id
     
 
 

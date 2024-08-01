@@ -167,3 +167,8 @@ APP_TOKEN = "550e8400-e29b-41d4-a716-446655440000"
 
 
 CSRF_TRUSTED_ORIGINS = ['https://*.127.0.0.1','https://productionb.univa.cloud','https://production.univa.cloud']
+
+
+
+End_shift_time="7.00AM"
+End_shift_number=3

@@ -39,8 +39,8 @@ from .models import LogData, DeviceData, MachineData, ProductionData
 #         return False
     
 class LogDataAdmin(admin.ModelAdmin):
-    list_display = ('unique_id', 'date', 'time', 'protocol', 'topic_api')
-    search_fields = ('unique_id', 'protocol', 'topic_api')
+    list_display = ('data_id', 'date', 'time', 'protocol', 'topic_api')
+    search_fields = ('data_id', 'protocol', 'topic_api')
 
 class DeviceDataAdmin(admin.ModelAdmin):
     list_display = ('device_id', 'date', 'time', 'protocol', 'topic_api', 'create_date_time')

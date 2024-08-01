@@ -46,12 +46,12 @@ class DeviceDetails(models.Model):
     
 
 class MachineDetails(models.Model):
-    machine_name = models.CharField(max_length=45, blank=False,default="none")
+    machine_name = models.CharField(max_length=45, blank=False, default="none")
     machine_id = models.CharField(max_length=15, unique=True, blank=False)
     line = models.CharField(max_length=30, null=True, blank=True)
     manufacture = models.CharField(max_length=45, null=True, blank=True)
     year = models.CharField(max_length=30, null=True, blank=True)
-    device = models.ForeignKey(DeviceDetails, on_delete=models.CASCADE)
+    device = models.ForeignKey(DeviceDetails, on_delete=models.CASCADE, null=True, blank=True)
     production_per_hour = models.IntegerField(blank=False, default=0)
     create_date_time = models.DateTimeField(auto_now_add=True)
     update_date_time = models.DateTimeField(auto_now=True)
@@ -68,34 +68,31 @@ class MachineGroup(models.Model):
         return self.group_name
 
     def clean(self):
-        if self.pk:  # only run validation if the instance has a primary key
+        if self.pk:  
             for machine in self.machine_list.all():
                 if MachineGroup.objects.filter(machine_list=machine).exclude(id=self.id).exists():
                     raise ValidationError(f'The machine {machine.machine_name} is already assigned to another group.')
 
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)  # Save the instance first to get an ID
-        self.clean()  # Val
+        super().save(*args, **kwargs)  
+        self.clean()  
 
 class ShiftTimings(models.Model):
-    _id = models.AutoField(primary_key=True)
-    start_time = models.TimeField(blank=False)
-    end_time = models.TimeField(blank=False)
-    shift_name = models.CharField(max_length=45, blank=False)
+    _id=models.AutoField(primary_key=True, default=1)
+    shift_number = models.IntegerField(blank=False, null=False ,default=1)  # Required field
+    start_time = models.TimeField(blank=True, null=True)  # Optional field
+    end_time = models.TimeField(blank=True, null=True)  # Optional field
+    shift_name = models.CharField(max_length=45, blank=True, null=True)  # Optional field
     create_date_time = models.DateTimeField(auto_now_add=True)
     update_date_time = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.shift_name
+        return str(self.shift_number)  # Convert to string
 
     def clean(self):
-        overlapping_shifts = ShiftTimings.objects.filter(
-            start_time__lt=self.end_time,
-            end_time__gt=self.start_time
-        ).exclude(pk=self.pk)
-        
-        if overlapping_shifts.exists():
-            raise ValidationError(f'The shift timings overlap with an existing shift: {overlapping_shifts.first().shift_name}')
+        if self.start_time and self.end_time:
+            if self.start_time >= self.end_time:
+                raise ValidationError('Start time must be before end time.')
 
     def save(self, *args, **kwargs):
         self.clean()
@@ -123,29 +120,4 @@ class Token(models.Model):
     token = models.CharField(max_length=30)
     createdAt = models.DateTimeField(auto_now_add=True)
 
-# class Token(models.Model):
-#     """
-#     The default authorization token model.
-#     """
-#     key = models.CharField(_("Key"), max_length=40, primary_key=True)
-#
-#     deviceID = models.OneToOneField(
-#         Device, related_name='auth_token',
-#         on_delete=models.CASCADE, verbose_name="Device"
-#     )
-#     created = models.DateTimeField(_("Created"), auto_now_add=True)
-#
-#     class Meta:
-#         verbose_name = _("Token")
-#         verbose_name_plural = _("Tokens")
-#
-#     def save(self, *args, **kwargs):
-#         if not self.key:
-#             self.key = self.generate_key()
-#         return super(Token, self).save(*args, **kwargs)
-#
-#     def generate_key(self):
-#         return binascii.hexlify(os.urandom(20)).decode()
-#
-#     def __str__(self):
-#         return self.key
+
