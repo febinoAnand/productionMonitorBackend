@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 import os
+import datetime
 from pathlib import Path
 from django.core.management.commands.runserver import Command as runserver
 
@@ -170,5 +171,5 @@ CSRF_TRUSTED_ORIGINS = ['https://*.127.0.0.1','https://productionb.univa.cloud',
 
 
 
-END_SHIFT_TIME = '18:00:00'  # Example end time
-END_SHIFT_NUMBER = 2         # Example shift number
+END_SHIFT_TIME = datetime.time(7,0) # Example end time
+END_SHIFT_NUMBER = 3                # Example shift number

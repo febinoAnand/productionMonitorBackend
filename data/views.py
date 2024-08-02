@@ -322,7 +322,7 @@ class ProductionMonitorViewSet(viewsets.ViewSet):
         total_production_count_all_shifts = 0
         total_target_production_all_shifts = 0
 
-        shifts = ShiftTimings.objects.all()
+        shifts = ShiftTiming.objects.all()
         groups = MachineGroup.objects.all()
 
         cumulative_machine_data = {}
@@ -432,9 +432,9 @@ class ShiftReportViewSet(viewsets.ViewSet):
         
         # Get shift timings
         try:
-            shift = ShiftTimings.objects.get(_id=shift_id)
+            shift = ShiftTiming.objects.get(_id=shift_id)
             print("Shift found:", shift)
-        except ShiftTimings.DoesNotExist:
+        except ShiftTiming.DoesNotExist:
             print("Shift not found")
             return Response({"error": "Shift not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -589,7 +589,7 @@ class ShiftwiseReportGenerateViewSet(viewsets.ViewSet):
             return Response({"error": "Machine not found"}, status=status.HTTP_404_NOT_FOUND)
 
         # Retrieve all shift timings
-        shifts = ShiftTimings.objects.all()
+        shifts = ShiftTiming.objects.all()
         shiftwise_data = []
 
         for shift in shifts:
@@ -668,7 +668,7 @@ class ListAchievementsViewSet(viewsets.ViewSet):
                 }
                 
                 # Get all shifts
-                shifts = ShiftTimings.objects.all()
+                shifts = ShiftTiming.objects.all()
                 
                 for shift in shifts:
                     shift_start = shift.start_time
@@ -847,7 +847,7 @@ class GroupMachineDataViewSet(viewsets.ViewSet):
 
             for machine in machines:
                 # Get the shift timings
-                shift_timings = ShiftTimings.objects.all()
+                shift_timings = ShiftTiming.objects.all()
                 shifts = []
 
                 for shift in shift_timings:

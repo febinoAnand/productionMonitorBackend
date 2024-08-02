@@ -39,20 +39,20 @@ from .models import LogData, DeviceData, MachineData, ProductionData
 #         return False
     
 class LogDataAdmin(admin.ModelAdmin):
-    list_display = ('data_id', 'date', 'time', 'protocol', 'topic_api')
+    list_display = ('date', 'time', 'data_id', 'received_data')
     search_fields = ('data_id', 'protocol', 'topic_api')
 
 class DeviceDataAdmin(admin.ModelAdmin):
-    list_display = ('device_id', 'date', 'time', 'protocol', 'topic_api', 'create_date_time')
+    list_display = ('date', 'time', 'device_id', "timestamp" ,'data')
     search_fields = ('device_id__device_token', 'protocol', 'topic_api')
 
 
 class MachineDataAdmin(admin.ModelAdmin):
-    list_display = ('machine_id', 'device_id', 'date', 'time', 'create_date_time')
+    list_display = ( 'date', 'time','machine_id', 'device_id','data', 'create_date_time')
     search_fields = ('machine_id__machine_id', 'device_id__device_token')
 
 class ProductionDataAdmin(admin.ModelAdmin):
-    list_display = ('shift_name', 'date', 'time', 'machine_id', 'target_production', 'production_count')
+    list_display = ( 'date', 'time','shift_number', 'machine_id', 'production_count', 'target_production','production_date')
     search_fields = ('shift_name', 'machine_id__machine_id')
 
 admin.site.register(LogData, LogDataAdmin)
