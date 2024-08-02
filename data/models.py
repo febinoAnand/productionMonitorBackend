@@ -67,7 +67,7 @@ class LogData(models.Model):
     received_data = models.CharField(max_length=2000, null=True, blank=True)
     protocol = models.CharField(max_length=15, null=True, blank=True)
     topic_api = models.CharField(max_length=100, null=True, blank=True)
-    data_id = models.CharField(max_length=50, unique=False, blank=True)
+    data_id = models.CharField(max_length=50, unique=False,null=True, blank=True)
 
     def __str__(self):
         return self.received_data
@@ -97,7 +97,7 @@ class MachineData(models.Model):
     create_date_time = models.DateTimeField(auto_now_add=True)
     update_date_time = models.DateTimeField(auto_now=True)
     timestamp=models.CharField(max_length=50, unique=True, blank=False,null=True)
-    data_id = models.ForeignKey(LogData, on_delete=models.CASCADE)
+    log_data_id = models.ForeignKey(LogData, on_delete=models.CASCADE)
 
     def __str__(self):
         return str(self.device_id)
@@ -112,7 +112,8 @@ class ProductionData(models.Model):
     machine_name = models.CharField(max_length=45, blank=False)
     production_count = models.IntegerField(blank=False)
     production_date=models.DateField(blank=False,null=True)
-    data_id = models.IntegerField(blank=False)  
+    log_data_id = models.IntegerField(blank=False)
+    timestamp=models.CharField(max_length=50, unique=True, blank=False,null=True)  
 
     def __str__(self):
         return self.shift_id

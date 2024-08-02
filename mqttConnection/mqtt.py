@@ -6,7 +6,7 @@ from data.models import LogData, DeviceData, MachineData,ProductionData
 from devices.models import DeviceDetails, MachineDetails,ShiftTimings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
+from django.conf import settings
 
 
 subscribed_topics = set()
@@ -55,175 +55,92 @@ def publish_response(mqtt_client, device_token, response, is_error=False):
         print(f"Device with token {device_token} not found. Cannot publish response.")
 
 
+def log_message(currentMessage, topic, protocol='MQTT'):
+    # Extract current date and time
+    current_date = datetime.date.today()
+    current_time = datetime.datetime.now().time()
 
+    # Attempt to parse JSON and extract timestamp if available
+    try:
+        message_data = json.loads(currentMessage)
+        data_id = str(message_data['timestamp']) if 'timestamp' in message_data else None
+    except json.JSONDecodeError:
+        message_data = None
+        data_id = None
 
-def on_message(mqtt_client, userdata, msg):
-    print(f'Received message on topic: {msg.topic} with payload: {msg.payload}')
-    currentMessage = msg.payload.decode()
-    currentTopic = msg.topic.split("/")
-    print(currentTopic)
-    print(currentMessage)
+    # Save log data to database
+    log_data = LogData(
+        date=current_date,
+        time=current_time,
+        received_data=currentMessage,
+        protocol=protocol,
+        topic_api=topic,
+        data_id=data_id
+    )
+    log_data.save()
+    print(f'Saved log data to database: {log_data}')
+
+    return message_data, log_data
+
+def handle_command_message(mqtt_client, msg, message_data, log_data):
+    current_timestamp = int(datetime.datetime.now().timestamp())
+    device_token = message_data['device_token']
 
     try:
-        # Step 2: Check if the message is a valid JSON
-        try:
-            message_data = json.loads(currentMessage)
-        except json.JSONDecodeError as e:
-            print("status: ERROR JSON message: Not a valid JSON received")
-            print(f'Error decoding JSON: {e}')
-            return
+        device = DeviceDetails.objects.get(device_token=device_token)
+        device_data = DeviceData(
+            date=datetime.date.today(),
+            time=datetime.datetime.now().time(),
+            data=message_data,
+            device_id=device,
+            protocol='MQTT',
+            topic_api=msg.topic,
+            log_data_id=log_data
+        )
+        device_data.save()
+        print(f'Saved device data to database: {device_data}')
 
-        # Extract timestamp and unique ID from the message
-        if 'timestamp' in message_data:
-            timestamp = message_data['timestamp']
-        else:
-            timestamp = int(datetime.datetime.now().timestamp())
-            message_data['timestamp'] = timestamp
-            print('Generated current timestamp')
+        response = {
+            "status": "OK",
+            "device_token": device_token,
+            "cmd_response": current_timestamp,
+        }
+        publish_response(mqtt_client, device_token, response)
+    except DeviceDetails.DoesNotExist:
+        response = {
+            "status": "DEVICE NOT FOUND",
+            "message": "Device not found with given token"
+        }
+        publish_response(mqtt_client, device_token, response, is_error=True)
+        print('Device token mismatch')
 
-        unique_id = str(timestamp)
+def handle_machine_data(mqtt_client, msg, message_data, log_data):
+    timestamp = message_data['timestamp']
+    dt = datetime.datetime.utcfromtimestamp(timestamp)
+    message_date = dt.date()
+    message_time = dt.time()
 
+    device_token = message_data.get('device_token', '')
 
-        current_date = datetime.date.today()
-        current_time = datetime.datetime.now().time()
+    try:
+        device = DeviceDetails.objects.get(device_token=device_token)
+    except DeviceDetails.DoesNotExist:
+        response = {
+            "status": "DEVICE NOT FOUND",
+            "message": "Device not found with given token",
+            "device_token": device_token,
+            "timestamp": timestamp
+        }
+        publish_response(mqtt_client, device_token, response, is_error=True)
+        print('Device token mismatch')
+        return
 
-        # Step 1: Store raw message in LogData if unique_id is not a duplicate
-        if not LogData.objects.filter(unique_id=unique_id).exists():
-            log_data = LogData(
-                date=current_date,
-                time=current_time,
-                received_data=currentMessage,
-                protocol='MQTT',
-                topic_api=msg.topic,
-                unique_id=unique_id
-            )
-            log_data.save()
-            print(f'Saved log data to database: {log_data}')
-        else:
-            log_data = LogData.objects.get(unique_id=unique_id)
-            print(f'Log data with unique_id {unique_id} already exists: {log_data}')
-            device_token = str(message_data.get('device_token', ''))
-            response = {
-                "status": "Duplicate Timestamp",
-                "message": "Timestamp already exists",
-                "Device Token": device_token,
-                "timestamp":message_data['timestamp']
-            }
-            publish_response(mqtt_client, device_token, response, is_error=True)
-            return
+    machine_data_saved = False
 
-        # Step 3: Check if it's a command or machine data
-        device_token = message_data.get('device_token', '')
-        if 'cmd' in message_data and message_data['cmd'] == "TIMESTAMP" and device_token:
-            # Handle command
-            current_timestamp = int(datetime.datetime.now().timestamp())
-
-            try:
-                device = DeviceDetails.objects.get(device_token=device_token)
-
-                device_data = DeviceData(
-                    date=current_date,
-                    time=current_time,
-                    data=message_data,
-                    device_id=device,
-                    protocol='MQTT',
-                    topic_api=msg.topic,
-                    log_data_id=log_data
-                )
-                device_data.save()
-                print(f'Saved device data to database: {device_data}')
-
-                response = {
-                    "status": "OK",
-                    "device_token": device_token,
-                    "cmd_response": current_timestamp,
-                }
-                publish_response(mqtt_client, device_token, response)
-
-            except DeviceDetails.DoesNotExist:
-                response = {
-                    "status": "DEVICE NOT FOUND",
-                    "message": "Device not found with given token"
-                }
-                publish_response(mqtt_client, device_token, response, is_error=True)
-                print('Device token mismatch')
-
-        elif 'timestamp' in message_data and device_token:
-            # Step 4: Handle machine data
-            dt = datetime.datetime.fromtimestamp(timestamp)
-            message_date = dt.date()
-            message_time = dt.time()
-
-            try:
-                first_log = LogData.objects.first()
-                if first_log:
-                    try:
-                        first_timestamp = int(first_log.unique_id)
-                    except ValueError:
-                        first_timestamp = int(datetime.datetime.strptime(first_log.unique_id, "%Y-%m-%d %H:%M:%S").timestamp())
-
-                    if timestamp < first_timestamp:
-                        response = {
-                            "status": "INVALID TIMESTAMP",
-                            "message": "Timestamp is less than first data",
-                            "device_token": device_token,
-                            "timestamp": timestamp
-                        }
-                        publish_response(mqtt_client, device_token, response, is_error=True)
-                        print('Timestamp is less than the first data in the log')
-                        return
-            except Exception as e:
-                print(f'Error checking first log data: {e}')
-
-            try:
-                device = DeviceDetails.objects.get(device_token=device_token)
-            except DeviceDetails.DoesNotExist:
-                response = {
-                    "status": "DEVICE NOT FOUND",
-                    "message": "Device not found",
-                    "device_token": device_token,
-                    "timestamp": timestamp
-                }
-                publish_response(mqtt_client, device_token, response, is_error=True)
-                print('Device token mismatch')
-                return
-
-            # Validate machine ID (handle both numbers and characters)
-            machine_id = next((key for key in message_data if key not in ['timestamp', 'device_token', 'cmd']), None)
-            if not machine_id:
-                response = {
-                    "status": "MACHINE ID ERROR",
-                    "message": "Machine ID not found in message data",
-                    "device_token": device_token,
-                    "timestamp": timestamp
-                }
-                publish_response(mqtt_client, device_token, response, is_error=True)
-                print('Machine ID not found in message data')
-                return
-
-            # Save device data first
-            try:
-                device_data = DeviceData(
-                    date=message_date,
-                    time=message_time,
-                    data=message_data,
-                    device_id=device,
-                    protocol='MQTT',
-                    topic_api=msg.topic,
-                    log_data_id=log_data
-                )
-                device_data.save()
-                print(f'Saved device data to database: {device_data}')
-            except Exception as e:
-                response = {
-                    "status": "DATA SAVE ERROR",
-                    "message": f"Error saving device data: {e}",
-                    "device_token": device_token,
-                    "timestamp": timestamp
-                }
-                publish_response(mqtt_client, device_token, response, is_error=True)
-                print(f'Error saving device data to database: {e}')
-                return
+    for key, value in message_data.items():
+        if key not in ['timestamp', 'device_token', 'cmd']:
+            machine_id = key
+            machine_data_content = value
 
             try:
                 machine = MachineDetails.objects.get(machine_id=machine_id)
@@ -235,129 +152,194 @@ def on_message(mqtt_client, userdata, msg):
                     "timestamp": timestamp
                 }
                 publish_response(mqtt_client, device_token, response, is_error=True)
-                print('Machine ID mismatch')
-                return
+                print(f'Machine ID mismatch for {machine_id}')
+                continue
 
-            # Step 5: Save machine data
             try:
                 machine_data = MachineData(
                     date=message_date,
                     time=message_time,
                     machine_id=machine,
-                    data=message_data,
+                    data={machine_id: machine_data_content},  # Save only the machine-specific data
                     device_id=device,
-                    data_id=log_data
+                    log_data_id=log_data,
+                    timestamp=str(timestamp)
                 )
                 machine_data.save()
                 print(f'Saved machine data to database: {machine_data}')
 
-                #Step 6: Extract production count
-                production_count = message_data.get(machine_id, 0)
-                print(f"Extracted production count: {production_count} for machine_id: {machine_id}")
-                last_production_data = ProductionData.objects.filter(machine_id=machine.machine_id).order_by('-date', '-time').first()
-                print("Queried last_production_data:", last_production_data)
-
-                if last_production_data:
-                    print(f"Last production count: {last_production_data.production_count}")
-                    if last_production_data.production_count > production_count:
-                        response = {
-                            "status": "PRODUCTION COUNT ERROR",
-                            "message": "Production count is less than last recorded count",
-                            "device_token": device_token,
-                            "production_count": production_count,
-                            "timestamp": timestamp
-                        }
-                        publish_response(mqtt_client, device_token, response, is_error=True)
-                        print('Production count is less than the last recorded count')
-                        return
-                else:
-                    print("No previous production data found for the given machine_id")
-                
-                #Step 7: Save production data
-                # Fetch the ShiftTimings instance
-                dt = datetime.datetime.fromtimestamp(message_data['timestamp'])
-                message_date = dt.date()
-                message_time = dt.time()
-                shift_instance = get_shift_instance(message_time)
-    
-                if not shift_instance:
-                    print('No matching shift found for the given time')
-                    response = {
-                        "status": "SHIFT ERROR",
-                        "message": "No matching shift found for the given time",
-                        "device_token": message_data.get('device_token', ''),
-                        "timestamp": message_data['timestamp']
-                    }
-                    publish_response(mqtt_client, message_data.get('device_token', ''), response, is_error=True)
-                    return
-              
-
-                # Save production data
-                production_data = ProductionData(
-                    date=message_date,
-                    time=message_time,
-                    shift_id=shift_instance._id,
-                    shift_name=shift_instance.shift_name,
-                    shift_start_time=shift_instance.start_time,
-                    shift_end_time=shift_instance.end_time,
-                    target_production=machine.production_per_hour,  
-                    machine_id=machine.machine_id,
-                    machine_name=machine.machine_name,
-                    production_count=production_count,
-                    data_id=log_data.id
-                )
-                production_data.save()
-                print(f'Saved production data to database: {production_data}')
-
-
-                response = {
-                    "status": "OK",
-                    "message": "Successfully data saved",
-                    "device_token": device_token,
-                    "timestamp": timestamp
-                }
-                publish_response(mqtt_client, device_token, response)
+                # Handle production data
+                handle_production_data(mqtt_client, device_token, {machine_id: machine_data_content}, machine, timestamp, log_data)
+                machine_data_saved = True
 
             except Exception as e:
                 response = {
                     "status": "DATA SAVE ERROR",
-                    "message": f"Error production data: {e}",
+                    "message": f"Error saving machine data: {e}",
                     "device_token": device_token,
                     "timestamp": timestamp,
                 }
                 publish_response(mqtt_client, device_token, response, is_error=True)
-                print(f'Error saving machine or production data to database: {e}')
+                print(f'Error saving machine data to database: {e}')
+                return
 
-        else:
-            print("Unsupported message format")
+    if machine_data_saved:
+        try:
+            device_data = DeviceData(
+                date=message_date,
+                time=message_time,
+                data=message_data,  # Save the full message data only after machine data is saved
+                device_id=device,
+                protocol='MQTT',
+                topic_api=msg.topic,
+                timestamp=str(timestamp),
+                log_data_id=log_data
+            )
+            device_data.save()
+            print(f'Saved device data to database: {device_data}')
+        except Exception as e:
             response = {
-                "status": "DATA ERROR",
-                "message": "Unsupported message format",
+                "status": "DATA SAVE ERROR",
+                "message": f"Error saving device data: {e}",
+                "device_token": device_token,
+                "timestamp": timestamp
             }
-            publish_response(mqtt_client, device_token, response)
+            publish_response(mqtt_client, device_token, response, is_error=True)
+            print(f'Error saving device data to database: {e}')
 
-    except ValueError as e:
+
+
+
+def handle_production_data(mqtt_client, msg, message_data, log_data, machine, machine_id, device_token):
+    # Retrieve end shift settings from settings.py
+    end_shift_time_str = settings.END_SHIFT_TIME
+    end_shift_number = settings.END_SHIFT_NUMBER
+
+    # Convert end_shift_time from string to a time object
+    end_shift_time = datetime.datetime.strptime(end_shift_time_str, "%H:%M:%S").time()
+
+    # Extract timestamp from the message
+    timestamp = message_data['timestamp']
+    dt = datetime.datetime.utcfromtimestamp(timestamp)
+    message_date = dt.date()
+    message_time = dt.time()
+
+    # Extract production count
+    production_count = message_data.get(machine_id, 0)
+    print(f"Extracted production count: {production_count} for machine_id: {machine_id}")
+
+    # Fetch the last production data entry for validation
+    last_production_data = ProductionData.objects.filter(machine_id=machine.machine_id).order_by('-date', '-time').first()
+    print("Queried last_production_data:", last_production_data)
+
+    if last_production_data:
+        print(f"Last production count: {last_production_data.production_count}")
+        if last_production_data.production_count > production_count:
+            response = {
+                "status": "PRODUCTION COUNT ERROR",
+                "message": "Production count is less than last recorded count",
+                "device_token": device_token,
+                "production_count": production_count,
+                "timestamp": timestamp
+            }
+            publish_response(mqtt_client, device_token, response, is_error=True)
+            print('Production count is less than the last recorded count')
+            return
+    else:
+        print("No previous production data found for the given machine_id")
+
+    # Fetch the ShiftTimings instance based on shift_number
+    shift_number = message_data.get('shift_number')
+    shift_instance = ShiftTimings.objects.filter(shift_number=shift_number).first()
+    if not shift_instance:
+        shift_instance = ShiftTimings(
+            shift_number=shift_number,
+            start_time=None,
+            end_time=None,
+            shift_name=None
+        )
+        shift_instance.save()
+
+    # Adjust production_date if end_shift_time and shift_number match
+    if shift_instance.end_time and shift_instance.end_time.time() < end_shift_time and shift_instance.shift_number == end_shift_number:
+        production_date = message_date - datetime.timedelta(days=1)
+    else:
+        production_date = message_date
+
+    # Save production data
+    try:
+        production_data = ProductionData(
+            date=production_date,
+            time=message_time,
+            shift_id=shift_instance._id,
+            shift_name=shift_instance.shift_name,
+            shift_start_time=shift_instance.start_time,
+            shift_end_time=shift_instance.end_time,
+            target_production=machine.production_per_hour,
+            machine_id=machine.machine_id,
+            machine_name=machine.machine_name,
+            production_count=production_count,
+            data_id=log_data.id
+        )
+        production_data.save()
+        print(f'Saved production data to database: {production_data}')
+
         response = {
-            "status": "VALUE ERROR",
-            "message": str(e),
+            "status": "OK",
+            "message": "Successfully saved data",
             "device_token": device_token,
             "timestamp": timestamp
         }
-        publish_response(mqtt_client, device_token, response, is_error=True)
-        print(f'Error processing message: {e}')
-
-
-def get_shift_instance(message_time):
-    print("msg time",message_time)
-    try:
-        shift_instance = ShiftTimings.objects.filter(
-            start_time__lte=message_time,
-            end_time__gte=message_time
-        ).first()
-        return shift_instance
+        publish_response(mqtt_client, device_token, response)
     except Exception as e:
-        print(f'Error fetching ShiftTimings instance: {e}')
-        return None
+        response = {
+            "status": "DATA SAVE ERROR",
+            "message": f"Error saving production data: {e}",
+            "device_token": device_token,
+            "timestamp": timestamp,
+        }
+        publish_response(mqtt_client, device_token, response, is_error=True)
+        print(f'Error saving production data to database: {e}')
+
+
+
+
+def on_message(mqtt_client, userdata, msg):
+    print(f'Received message on topic: {msg.topic} with payload: {msg.payload}')
+    currentMessage = msg.payload.decode()
+
+    # Log the message and get the parsed data and log entry
+    message_data, log_data = log_message(currentMessage, msg.topic)
+
+    # If the message is not a valid JSON, return after logging it
+    if message_data is None:
+        response = {
+            "status": "Invalid JSON",
+            "message": "The received message is not a valid JSON",
+            "timestamp": int(datetime.datetime.now().timestamp())
+        }
+        publish_response(mqtt_client, '', response, is_error=True)
+        return
+
+    # Further processing based on the type of message
+    device_token = message_data.get('device_token', '')
+
+    # Extract or generate timestamp from the message
+    timestamp = message_data.get('timestamp', int(datetime.datetime.now().timestamp()))
+    unique_id = str(timestamp)
+
+    if 'cmd' in message_data and message_data['cmd'] == "TIMESTAMP" and device_token:
+        handle_command_message(mqtt_client, msg, message_data, log_data)
+    elif 'timestamp' in message_data and device_token:
+        handle_machine_data(mqtt_client, msg, message_data, log_data)
+    else:
+        response = {
+            "status": "UNKNOWN FORMAT",
+            "message": "Received message format is not recognized",
+            "timestamp": timestamp
+        }
+        publish_response(mqtt_client, device_token, response, is_error=True)
+
 
 
 

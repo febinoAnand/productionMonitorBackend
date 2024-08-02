@@ -79,7 +79,7 @@ class MachineDataSerializer(serializers.ModelSerializer):
 class ProductionDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductionData
-        fields = ['date', 'time','shift_number', 'shift_name',  'target_production', 'machine_id', 'machine_name', 'production_count','production_date', 'data_id']
+        fields = ['date', 'time','shift_number', 'shift_name',  'target_production', 'machine_id', 'machine_name', 'production_count','production_date', 'data_id','timestamp']
         
 
 

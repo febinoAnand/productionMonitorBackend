@@ -70,16 +70,6 @@ class MachineDetailsSerializer(serializers.ModelSerializer):
         model = MachineDetails
         fields = ['machine_id', 'machine_name']
 
-class MachineDetailsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MachineDetails
-        fields = ['machine_id', 'machine_name']
-
-class MachineDetailsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MachineDetails
-        fields = ['id','machine_id', 'machine_name']
-
 class MachineGroupSerializer(serializers.ModelSerializer):
     machine_list = serializers.PrimaryKeyRelatedField(
         queryset=MachineDetails.objects.all(), 
