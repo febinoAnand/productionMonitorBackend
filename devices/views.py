@@ -14,7 +14,7 @@ from .serializers import MachineSerializer, \
     GetTokenSerializer,\
     UnRegisteredGetMethodSerializer,\
     MachineGroupSerializer,\
-    ShiftTimingsSerializer
+    ShiftTimingSerializer
 from django.shortcuts import render
 from django.views import View
 from django.http import HttpResponse
@@ -252,6 +252,6 @@ class MachineGroupViewSet(viewsets.ModelViewSet):
     queryset = MachineGroup.objects.all()
     serializer_class = MachineGroupSerializer
 
-class ShiftTimingsViewSet(viewsets.ModelViewSet):
-    queryset = ShiftTimings.objects.all()
-    serializer_class = ShiftTimingsSerializer
+class ShiftTimingViewSet(viewsets.ModelViewSet):
+    queryset = ShiftTiming.objects.all()
+    serializer_class = ShiftTimingSerializer

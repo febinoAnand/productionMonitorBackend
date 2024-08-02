@@ -89,14 +89,26 @@ class ShiftTimings(models.Model):
     def __str__(self):
         return str(self.shift_number)  # Convert to string
 
-    def clean(self):
-        if self.start_time and self.end_time:
-            if self.start_time >= self.end_time:
-                raise ValidationError('Start time must be before end time.')
+class ShiftTiming(models.Model):
+    # _id=models.AutoField(primary_key=True, default=1)
+    shift_number = models.IntegerField(blank=False, null=False ,default=1)  # Required field
+    start_time = models.TimeField(blank=True, null=True)  # Optional field
+    end_time = models.TimeField(blank=True, null=True)  # Optional field
+    shift_name = models.CharField(max_length=45, blank=True, null=True)  # Optional field
+    create_date_time = models.DateTimeField(auto_now_add=True)
+    update_date_time = models.DateTimeField(auto_now=True)
 
-    def save(self, *args, **kwargs):
-        self.clean()
-        super(ShiftTimings, self).save(*args, **kwargs)
+    def __str__(self):
+        return str(self.shift_number)  # Convert to string
+
+    # def clean(self):
+    #     if self.start_time and self.end_time:
+    #         if self.start_time >= self.end_time:
+    #             raise ValidationError('Start time must be before end time.')
+
+    # def save(self, *args, **kwargs):
+    #     self.clean()
+    #     super(ShiftTimings, self).save(*args, **kwargs)
 
 class RFID(models.Model):
     rfid = models.CharField(max_length=50,blank=False,unique=True,default=uuid.uuid1)

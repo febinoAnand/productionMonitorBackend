@@ -3,7 +3,7 @@ import json
 import datetime
 from configuration.models import MqttSettings
 from data.models import LogData, DeviceData, MachineData,ProductionData
-from devices.models import DeviceDetails, MachineDetails,ShiftTimings
+from devices.models import DeviceDetails, MachineDetails,ShiftTiming
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
@@ -186,13 +186,14 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
         except MachineDetails.DoesNotExist:
             response = {
                 "status": "MACHINE NOT FOUND",
-                "message": "Machine not found with given ID",
+                "message": "Machine not found with given ID " + machine_id,
                 "device_token": device_token,
                 "timestamp": timestamp
             }
             publish_response(mqtt_client, device_token, response, is_error=True)
             print(f'Machine ID mismatch for {machine_id}')
-            continue
+            # continue
+            return False
 
         try:
             machine_data = MachineData(
@@ -260,7 +261,8 @@ def handle_production_data(mqtt_client, message_data, log_data):
     end_shift_time_str = settings.END_SHIFT_TIME
     end_shift_number = settings.END_SHIFT_NUMBER
 
-    end_shift_time = datetime.datetime.strptime(end_shift_time_str, "%H:%M:%S").time()
+    end_shift_time = end_shift_time_str
+    # end_shift_time = datetime.datetime.strptime(end_shift_time_str, "%H:%M:%S").time()
 
     # Parse timestamp and extract date and time
     timestamp = message_data['timestamp']
@@ -286,19 +288,20 @@ def handle_production_data(mqtt_client, message_data, log_data):
         if last_production_data and last_production_data.production_count > production_count:
             response = {
                 "status": "PRODUCTION COUNT ERROR",
-                "message": "Production count is less than last recorded count",
+                "message": "Production count is less than last recorded count for "+machine_id,
                 "device_token": device_token,
                 "production_count": production_count,
                 "timestamp": timestamp
             }
             publish_response(mqtt_client, device_token, response, is_error=True)
             print('Production count is less than the last recorded count')
-            continue
+            # continue
+            return False
 
         # Retrieve or create shift instance
-        shift_instance = ShiftTimings.objects.filter(shift_number=shift_number).first()
+        shift_instance = ShiftTiming.objects.filter(shift_number=shift_number).first()
         if not shift_instance:
-            shift_instance = ShiftTimings(
+            shift_instance = ShiftTiming(
                 shift_number=shift_number,
                 start_time=None,
                 end_time=None,
@@ -312,7 +315,7 @@ def handle_production_data(mqtt_client, message_data, log_data):
         # Save production data
         try:
             production_data = ProductionData(
-                date=production_date,
+                date=message_date,
                 time=message_time,
                 shift_number=shift_instance.shift_number,
                 shift_name=shift_instance.shift_name,
@@ -326,13 +329,13 @@ def handle_production_data(mqtt_client, message_data, log_data):
             production_data.save()
             print(f'Saved production data to database: {production_data}')
 
-            response = {
-                "status": "OK",
-                "message": "Successfully saved data",
-                "device_token": device_token,
-                "timestamp": timestamp
-            }
-            publish_response(mqtt_client, device_token, response)
+            # response = {
+            #     "status": "OK",
+            #     "message": "Successfully saved data",
+            #     "device_token": device_token,
+            #     "timestamp": timestamp
+            # }
+            # publish_response(mqtt_client, device_token, response)
         except Exception as e:
             response = {
                 "status": "DATA SAVE ERROR",
@@ -342,6 +345,16 @@ def handle_production_data(mqtt_client, message_data, log_data):
             }
             publish_response(mqtt_client, device_token, response, is_error=True)
             print(f'Error saving production data to database: {e}')
+            return False
+        
+    response = {
+                "status": "OK",
+                "message": "Successfully saved data",
+                "device_token": device_token,
+                "timestamp": timestamp
+            }
+    publish_response(mqtt_client, device_token, response)
+        
 
 
 

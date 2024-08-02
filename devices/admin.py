@@ -42,12 +42,17 @@ class DeviceDetailsAdmin(admin.ModelAdmin):
     search_fields = ('device_name', 'device_token', 'protocol')
 
 class MachineDetailsAdmin(admin.ModelAdmin):
-    list_display = ('machine_id', 'line', 'manufacture', 'year', 'device', 'create_date_time')
+    list_display = ('machine_id','machine_name', 'line', 'device', 'production_per_hour', 'create_date_time')
     search_fields = ('machine_id', 'line', 'manufacture', 'year')
 
 
-class ShiftTimingsAdmin(admin.ModelAdmin):
-    list_display = ('shift_name', 'start_time', 'end_time', 'create_date_time')
+# class ShiftTimingsAdmin(admin.ModelAdmin):
+#     list_display = ('shift_number','shift_name', 'start_time', 'end_time', 'create_date_time')
+#     search_fields = ('shift_name',)
+
+
+class ShiftTimingAdmin(admin.ModelAdmin):
+    list_display = ('shift_number','shift_name', 'start_time', 'end_time', 'create_date_time')
     search_fields = ('shift_name',)
 
 class MachineGroupAdmin(admin.ModelAdmin):
@@ -62,4 +67,4 @@ class MachineGroupAdmin(admin.ModelAdmin):
 admin.site.register(DeviceDetails, DeviceDetailsAdmin)
 admin.site.register(MachineDetails, MachineDetailsAdmin)
 admin.site.register(MachineGroup, MachineGroupAdmin)
-admin.site.register(ShiftTimings, ShiftTimingsAdmin)
+admin.site.register(ShiftTiming, ShiftTimingAdmin)
