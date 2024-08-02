@@ -202,47 +202,8 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
             }
             publish_response(mqtt_client, device_token, response, is_error=True)
             print(f'Machine ID mismatch for {machine_id}')
-<<<<<<< HEAD
-            return False
-
-    # Save device data
-    try:
-        device_data = DeviceData(
-            date=message_date,
-            time=message_time,
-            data=message_data,
-            device_id=device,
-            protocol='MQTT',
-            topic_api=msg.topic,
-            timestamp=str(timestamp),
-            log_data_id=log_data
-        )
-        device_data.save()
-        print(f'Saved device data to database: {device_data}')
-
-    except Exception as e:
-        response = {
-            "status": "DATA SAVE ERROR",
-            "message": f"Error saving device data: {e}",
-            "device_token": device_token,
-            "timestamp": timestamp
-        }
-        publish_response(mqtt_client, device_token, response, is_error=True)
-        print(f'Error saving device data to database: {e}')
-        return False
-
-    # Save machine data
-
-    for key, value in message_data.items():
-        if key in ['timestamp', 'device_token', 'cmd', 'shift_no']:
-            continue  # Skip non-machine ID keys
-
-        machine_id = key
-        machine_data_content = value
-=======
             # continue
             return False
->>>>>>> development
 
         try:
             machine = MachineDetails.objects.get(machine_id=machine_id)
@@ -310,12 +271,8 @@ def handle_production_data(mqtt_client, message_data, log_data):
             }
             publish_response(mqtt_client, device_token, response, is_error=True)
             print('Production count is less than the last recorded count')
-<<<<<<< HEAD
-            return
-=======
             # continue
             return False
->>>>>>> development
 
         # Retrieve or create shift instance
         shift_instance = ShiftTiming.objects.filter(shift_number=shift_number).first()
@@ -364,9 +321,6 @@ def handle_production_data(mqtt_client, message_data, log_data):
             }
             publish_response(mqtt_client, device_token, response, is_error=True)
             print(f'Error saving production data to database: {e}')
-<<<<<<< HEAD
-            return
-=======
             return False
         
     response = {
@@ -377,7 +331,6 @@ def handle_production_data(mqtt_client, message_data, log_data):
             }
     publish_response(mqtt_client, device_token, response)
         
->>>>>>> development
 
 
 
