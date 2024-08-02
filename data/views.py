@@ -854,7 +854,7 @@ class GroupMachineDataViewSet(viewsets.ViewSet):
                     shift_data = ProductionData.objects.filter(
                         machine_id=machine.machine_id, 
                         date=today, 
-                        shift_id=shift._id
+                        # shift_id=shift._id
                     ).order_by('-time').first()
 
                     if shift_data:
