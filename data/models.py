@@ -96,7 +96,7 @@ class MachineData(models.Model):
     device_id = models.ForeignKey(DeviceDetails, on_delete=models.CASCADE)
     create_date_time = models.DateTimeField(auto_now_add=True)
     update_date_time = models.DateTimeField(auto_now=True)
-    timestamp=models.CharField(max_length=50, unique=True, blank=False,null=True)
+    timestamp=models.CharField(max_length=50, unique=False, blank=False,null=True)
     log_data_id = models.ForeignKey(LogData, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -116,7 +116,7 @@ class ProductionData(models.Model):
     timestamp=models.CharField(max_length=50, unique=True, blank=False,null=True)  
 
     def __str__(self):
-        return self.shift_id
+        return str(self.shift_number)
     
 
 

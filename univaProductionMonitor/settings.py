@@ -170,5 +170,5 @@ CSRF_TRUSTED_ORIGINS = ['https://*.127.0.0.1','https://productionb.univa.cloud',
 
 
 
-End_shift_time="7.00AM"
-End_shift_number=3
+END_SHIFT_TIME = '18:00:00'  # Example end time
+END_SHIFT_NUMBER = 2         # Example shift number
