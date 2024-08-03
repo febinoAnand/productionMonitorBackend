@@ -330,6 +330,7 @@ class ProductionMonitorViewSet(viewsets.ViewSet):
         for shift in shifts:
             shift_data = {
                 'shift_id': shift.id,
+                'shift_number': shift.shift_number,
                 'shift_name': shift.shift_name,
                 'shift_start_time': shift.start_time,
                 'shift_end_time': shift.end_time,
@@ -352,7 +353,7 @@ class ProductionMonitorViewSet(viewsets.ViewSet):
                 for machine in machines:
                     latest_production_data = ProductionData.objects.filter(
                         machine_id=machine.machine_id,
-                        shift_id=shift.id
+                        shift_number=shift.shift_number
                     ).order_by('-date', '-time').first()
 
                     if latest_production_data:
