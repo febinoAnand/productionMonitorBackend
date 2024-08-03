@@ -230,6 +230,21 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
             print(f'Error saving machine data to database: {e}')
             # return False
 
+    device_data = DeviceData(
+        date=message_date,
+        time=message_time,
+        data=message_data,
+        device_id=device,
+        protocol='MQTT',
+        topic_api=msg.topic,
+        timestamp=str(timestamp),
+        log_data_id=log_data
+    )
+    device_data.save()
+    
+    print(f'Saved device data to database: {device_data}')
+            
+
     return True
 
 def handle_production_data(mqtt_client, message_data, log_data):
