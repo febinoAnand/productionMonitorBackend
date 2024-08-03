@@ -184,29 +184,29 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
         print('Duplicate timestamp found, data not saved.')
         return False
 
-    # Validate all machine details before saving any data
-    for key in message_data.keys():
+    for key, value in message_data.items():
         if key in ['timestamp', 'device_token', 'cmd', 'shift_no']:
             continue  # Skip non-machine ID keys
 
         machine_id = key
+        machine_data_content = value
 
         try:
             machine = MachineDetails.objects.get(machine_id=machine_id)
         except MachineDetails.DoesNotExist:
-            response = {
-                "status": "MACHINE NOT FOUND",
-                "message": "Machine not found with given ID " + machine_id,
-                "device_token": device_token,
-                "timestamp": timestamp
-            }
-            publish_response(mqtt_client, device_token, response, is_error=True)
+            # response = {
+            #     "status": "MACHINE NOT FOUND",
+            #     "message": "Machine not found with given ID " + machine_id,
+            #     "device_token": device_token,
+            #     "timestamp": timestamp
+            # }
+            # publish_response(mqtt_client, device_token, response, is_error=True)
             print(f'Machine ID mismatch for {machine_id}')
             # continue
-            return False
+            # return False
 
         try:
-            machine = MachineDetails.objects.get(machine_id=machine_id)
+            # machine = MachineDetails.objects.get(machine_id=machine_id)
             machine_data = MachineData(
                 date=message_date,
                 time=message_time,
@@ -220,15 +220,15 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
             print(f'Saved machine data to database: {machine_data}')
 
         except Exception as e:
-            response = {
-                "status": "DATA SAVE ERROR",
-                "message": f"Error saving machine data: {e}",
-                "device_token": device_token,
-                "timestamp": timestamp,
-            }
-            publish_response(mqtt_client, device_token, response, is_error=True)
+            # response = {
+            #     "status": "DATA SAVE ERROR",
+            #     "message": f"Error saving machine data: {e}",
+            #     "device_token": device_token,
+            #     "timestamp": timestamp,
+            # }
+            # publish_response(mqtt_client, device_token, response, is_error=True)
             print(f'Error saving machine data to database: {e}')
-            return False
+            # return False
 
     return True
 
