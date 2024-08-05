@@ -17,10 +17,9 @@ def on_connect(client, userdata, flags, rc):
         print('Connected successfully')
         global subscribed_topics
 
-        # Fetch the MqttSettings instance
-        try:
-            mqtt_settings = MqttSettings.objects.get(pk=1)  
-        except MqttSettings.DoesNotExist:
+        # Fetch the last MqttSettings instance
+        mqtt_settings = MqttSettings.objects.last()
+        if not mqtt_settings:
             print('MqttSettings instance does not exist.')
             return
 
@@ -33,6 +32,7 @@ def on_connect(client, userdata, flags, rc):
         print("All topics are successfully subscribed!!")
     else:
         print(f'Bad connection. Code: {rc}')
+
 
 
 @receiver(post_save, sender=DeviceDetails)
@@ -52,18 +52,21 @@ def subscribe_to_topic(sub_topic):
 
 def publish_response(mqtt_client, device_token, response, is_error=False):
     try:
-        # Fetch the MqttSettings instance
-        mqtt_settings = MqttSettings.objects.get(pk=1)  # Assuming there's only one instance
+        # Fetch the first MqttSettings instance
+        mqtt_settings = MqttSettings.objects.first()
+        if not mqtt_settings:
+            print("MqttSettings instance does not exist. Cannot publish response.")
+            return
+
         publish_topic = mqtt_settings.pub_topic
 
         # Publish the response to the topic
         result = mqtt_client.publish(publish_topic, json.dumps(response))
         print(f"Response Published to {publish_topic}: {response} with result {result}")
 
-    except MqttSettings.DoesNotExist:
-        print("MqttSettings instance does not exist. Cannot publish response.")
     except Exception as e:
         print(f"An error occurred: {e}")
+
 
 def log_message(currentMessage, topic, protocol='MQTT'):
     # Extract current date and time
