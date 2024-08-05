@@ -20,7 +20,8 @@ from .views import (
     EmployeeDetailViewSet,
     TableReportViewSet,
     GroupWiseMachineDataViewSet,
-    GroupMachineDataViewSet
+    GroupMachineDataViewSet,
+    ProductionViewSet
 )
 from rest_framework import routers
 
@@ -42,6 +43,7 @@ router.register(r'employee-Detail', EmployeeDetailViewSet,basename="employee-Det
 router.register(r'table-report', TableReportViewSet, basename='TableReportViewSet')
 router.register(r'group-wise-machine-data', GroupWiseMachineDataViewSet, basename='group-wise-machine-data')
 router.register(r'group-machine-data', GroupMachineDataViewSet, basename='group-machine-data')
+router.register(r'production', ProductionViewSet, basename='production')
 
 urlpatterns = [
     path('livedata', LiveDataViewset.as_view()),

@@ -315,7 +315,8 @@ def handle_production_data(mqtt_client, message_data, log_data):
                 machine_name=machine.machine_name,
                 production_count=production_count,
                 production_date=production_date, 
-                log_data_id=log_data.id  
+                log_data_id=log_data.id,
+                timestamp=timestamp  
             )
             production_data.save()
             print(f'Saved production data to database: {production_data}')

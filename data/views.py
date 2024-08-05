@@ -901,3 +901,114 @@ class GroupMachineDataViewSet(viewsets.ViewSet):
         
         return Response(response_data)
         
+class ProductionViewSet(viewsets.ViewSet):
+    def list(self, request):
+        today = datetime.today().date()
+        group_data = self.get_group_data(today)
+        machine_data = self.get_machine_data(today)
+
+        response_data = {
+            'date': today,
+            'group_data': group_data,
+            'machine_data': machine_data,
+            'debug_info': {
+                'groups_count': len(group_data),
+                'machines_count': len(machine_data),
+            }
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    def get_group_data(self, today):
+        groups = MachineGroup.objects.all()
+        group_data = []
+
+        for group in groups:
+            machines = group.machine_list.all()
+            machine_data = []
+
+            for machine in machines:
+                shift_timings = ShiftTimings.objects.all()
+                shift_dict = {str(shift.shift_number): {
+                    'date': today,
+                    'time': None,
+                    'shift_number':shift.shift_number,
+                    'shift_name': shift.shift_name,
+                    'shift_start_time': shift.start_time,
+                    'shift_end_time': shift.end_time,
+                    'production_count': 0,
+                    'target_production': 0,
+                    'total': 0
+                } for shift in shift_timings}
+
+                production_data = ProductionData.objects.filter(
+                    machine_id=machine.machine_id,
+                    production_date=today
+                ).order_by('-time')
+
+                for data in production_data:
+                    shift_info = shift_dict.get(str(data.shift_number), {})
+                    shift_info.update({
+                        'time': data.time,
+                        'production_count': data.production_count,
+                        'target_production': data.target_production,
+                        'total': data.target_production - data.production_count
+                    })
+                    shift_dict[str(data.shift_number)] = shift_info
+
+                machine_data.append({
+                    'id': machine.id,
+                    'machine_id': machine.machine_id,
+                    'machine_name': machine.machine_name,
+                    'shifts': shift_dict
+                })
+
+            group_data.append({
+                'group_id': group.id,
+                'group_name': group.group_name,
+                'machines': machine_data
+            })
+
+        return group_data
+
+    def get_machine_data(self, today):
+        machines = MachineDetails.objects.all()
+        machine_data = []
+
+        for machine in machines:
+            shift_timings = ShiftTimings.objects.all()
+            shift_dict = {str(shift.shift_number): {
+                'date': today,
+                'time': None,
+                'shift_number':shift.shift_number,
+                'shift_name': shift.shift_name,
+                'shift_start_time': shift.start_time,
+                'shift_end_time': shift.end_time,
+                'production_count': 0,
+                'target_production': 0,
+                'total': 0
+            } for shift in shift_timings}
+
+            production_data = ProductionData.objects.filter(
+                machine_id=machine.machine_id,
+                production_date=today
+            ).order_by('-time')
+
+            for data in production_data:
+                shift_info = shift_dict.get(str(data.shift_number), {})
+                shift_info.update({
+                    'time': data.time,
+                    'production_count': data.production_count,
+                    'target_production': data.target_production,
+                    'total': data.target_production - data.production_count
+                })
+                shift_dict[str(data.shift_number)] = shift_info
+
+            machine_data.append({
+                'id': machine.id,
+                'machine_id': machine.machine_id,
+                'machine_name': machine.machine_name,
+                'shifts': shift_dict
+            })
+
+        return machine_data
