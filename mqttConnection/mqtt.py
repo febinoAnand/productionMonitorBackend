@@ -91,7 +91,7 @@ def log_message(currentMessage, topic, protocol='MQTT'):
         data_id=data_id
     )
     log_data.save()
-    print(f'Saved log data to database: {log_data}')
+    print('Saved log data to database')
 
     return message_data, log_data
 
