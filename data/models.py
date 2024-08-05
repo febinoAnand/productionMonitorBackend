@@ -82,7 +82,7 @@ class DeviceData(models.Model):
     topic_api = models.CharField(max_length=100, null=True, blank=True)
     create_date_time = models.DateTimeField(auto_now_add=True)
     update_date_time = models.DateTimeField(auto_now=True)
-    timestamp=models.CharField(max_length=50, unique=True, blank=False,null=True)
+    timestamp=models.CharField(max_length=50, unique=False, blank=False,null=True)
     log_data_id = models.ForeignKey(LogData, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -113,7 +113,7 @@ class ProductionData(models.Model):
     production_count = models.IntegerField(blank=False)
     production_date=models.DateField(blank=False,null=True)
     log_data_id = models.IntegerField(blank=False)
-    timestamp=models.CharField(max_length=50, unique=True, blank=False,null=True)  
+    timestamp=models.CharField(max_length=50, unique=False, blank=False,null=True)  
 
     def __str__(self):
         return str(self.shift_number)

@@ -31,11 +31,13 @@ class MqttSettings(models.Model):
     server_name_alias = models.CharField(max_length=45, blank=False)
     host = models.CharField(max_length=45, blank=False)
     port = models.IntegerField(blank=False)
-    username = models.CharField(max_length=45,blank=True)
-    password = models.CharField(max_length=45,blank=True)
+    username = models.CharField(max_length=45, blank=True)
+    password = models.CharField(max_length=45, blank=True)
     qos = models.IntegerField(choices=QOS_CHOICES, default=0, blank=False)
     keepalive = models.IntegerField(default=60, blank=False)
-
+    pub_topic = models.CharField(max_length=255, default='default/pub/topic', blank=False)  # added field with default
+    sub_topic = models.CharField(max_length=255, default='default/sub/topic', blank=False)  # added field with default
+    
     def save(self, *args, **kwargs):
         if not self.pk and MqttSettings.objects.exists():
             raise ValidationError("There can be only one MqttSettings instance")
