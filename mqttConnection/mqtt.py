@@ -120,6 +120,7 @@ def on_message(mqtt_client, userdata, msg):
         }
         publish_response(mqtt_client,'', response, is_error=True)
         return
+    
 
     # Extract device token and timestamp from the message
     device_token = message_data.get('device_token', '')
@@ -127,7 +128,7 @@ def on_message(mqtt_client, userdata, msg):
     
     if 'cmd' in message_data and message_data['cmd'] == "TIMESTAMP" and device_token:
         handle_command_message(mqtt_client, msg, message_data, log_data)
-    elif 'timestamp' in message_data and device_token:
+    elif 'timestamp' in message_data and device_token and 'shift_no' in message_data:
         machine_data_saved = handle_machine_data(mqtt_client, msg, message_data, log_data)
         if machine_data_saved:
             handle_production_data(mqtt_client, message_data, log_data)
@@ -196,7 +197,11 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
         # Return False as the device was not found
         return False
 
-    if DeviceData.objects.filter(timestamp=str(timestamp),device_token=device_token).exists(): #check this line sir 
+
+
+    if DeviceData.objects.filter(timestamp=str(timestamp),device_id=device): 
+
+
         errors.append({
             "status": "DUPLICATE TIMESTAMP",
             "message": "Duplicate timestamp found, data not saved.",

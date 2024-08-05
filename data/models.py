@@ -86,7 +86,7 @@ class DeviceData(models.Model):
     log_data_id = models.ForeignKey(LogData, on_delete=models.CASCADE)
 
     def __str__(self):
-        return str(self.device_id)
+        return str(self.device_id.device_name)
     
 class MachineData(models.Model):
     date = models.DateField(blank=False)
