@@ -41,6 +41,14 @@ def handle_device_details_save(sender, instance, **kwargs):
       subscribe_to_topic(instance.sub_topic)
 
 
+@receiver(post_save, sender=MqttSettings)
+def subscribe_to_topic(sender, instance, **kwargs):
+    global mqtt_client
+
+    if instance.sub_topic:
+        mqtt_client.subscribe(instance.sub_topic)
+        print(f'Subscribed to {instance.sub_topic}')
+
 def subscribe_to_topic(sub_topic):
     if sub_topic not in subscribed_topics:
         mqtt_client.subscribe(sub_topic)
