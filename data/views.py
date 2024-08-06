@@ -924,39 +924,39 @@ class ProductionViewSet(viewsets.ViewSet):
             machine_data = []
 
             for machine in machines:
-                # Fetch all shift timings for the machine
+                # Fetch all shift timings
                 shift_timings = ShiftTiming.objects.all()
                 
                 shift_dict = {
                     str(shift.shift_number): {
                         'date': today,
-                        'time': None,
                         'shift_number': shift.shift_number,
                         'shift_name': shift.shift_name,
                         'shift_start_time': shift.start_time,
                         'shift_end_time': shift.end_time,
-                        'production_count': 0,
-                        'target_production': 0,
-                        'total': 0
+                        'Production_count':0
                     } for shift in shift_timings
                 }
 
-                # Fetch production data for the machine on the current date
-                production_data = ProductionData.objects.filter(
-                    machine_id=machine.machine_id,
-                    production_date=today
-                ).order_by('-time')
+                for shift in shift_timings:
+                    shift_number = shift.shift_number
 
-                for data in production_data:
-                    shift_number = str(data.shift_number)
-                    shift_info = shift_dict.get(shift_number, {})
-                    shift_info.update({
-                        'time': data.time,
-                        'production_count': data.production_count,
-                        'target_production': data.target_production,
-                        'total': data.target_production - data.production_count
-                    })
-                    shift_dict[shift_number] = shift_info
+                    # Fetch production data for the machine on the current date for the current shift
+                    production_data = ProductionData.objects.filter(
+                        machine_id=machine.machine_id,
+                        production_date=today,
+                        shift_number=shift_number
+                    ).order_by('time')
+
+                    if production_data.exists():
+                        first_data = production_data.first()
+                        last_data = production_data.last()
+                        production_count = last_data.production_count - first_data.production_count
+
+                        shift_dict[str(shift_number)].update({
+                            
+                            'Production_count': production_count
+                        })
 
                 # Append machine data
                 machine_data.append({

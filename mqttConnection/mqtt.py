@@ -146,6 +146,7 @@ def handle_command_message(mqtt_client, msg, message_data, log_data):
 
     try:
         device = DeviceDetails.objects.get(device_token=device_token)
+        print("device",device)
         device_data = DeviceData(
             date=datetime.date.today(),
             time=datetime.datetime.now().time(),
@@ -164,6 +165,7 @@ def handle_command_message(mqtt_client, msg, message_data, log_data):
             "cmd_response": current_timestamp,
         }
         publish_response(mqtt_client, device_token, response)
+
     except DeviceDetails.DoesNotExist:
         response = {
             "status": "DEVICE NOT FOUND",
@@ -184,6 +186,7 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
     
     try:
         device = DeviceDetails.objects.get(device_token=device_token)
+        print("device",device)
     except DeviceDetails.DoesNotExist:
         errors.append({
             "status": "DEVICE NOT FOUND",
@@ -196,7 +199,7 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
         # Return False as the device was not found
         return False
 
-    if DeviceData.objects.filter(timestamp=str(timestamp),device_token=device_token).exists(): #check this line sir 
+    if DeviceData.objects.filter(timestamp=str(timestamp),device_id__device_token=device_token).exists(): #check this line sir 
         errors.append({
             "status": "DUPLICATE TIMESTAMP",
             "message": "Duplicate timestamp found, data not saved.",
@@ -260,14 +263,6 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
         for error in errors:
             publish_response(mqtt_client, device_token, error, is_error=True)
         return False
-
-    response = {
-        "status": "OK",
-        "message": "Successfully saved data",
-        "device_token": device_token,
-        "timestamp": timestamp
-    }
-    publish_response(mqtt_client, device_token, response)
 
     return True
 
