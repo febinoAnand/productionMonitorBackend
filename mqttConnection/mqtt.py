@@ -7,6 +7,7 @@ from devices.models import DeviceDetails, MachineDetails,ShiftTiming
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
+import time
 
 
 subscribed_topics = set()
@@ -114,7 +115,7 @@ def on_message(mqtt_client, userdata, msg):
     # If the message is not a valid JSON, return after logging it
     if message_data is None:
         response = {
-            "status": "Invalid JSON",
+            "status": "INVALID JSON",
             "message": "The received message is not a valid JSON",
             "timestamp": int(datetime.datetime.now().timestamp())
         }
@@ -198,6 +199,32 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
         print('Device token mismatch')
         publish_response(mqtt_client, device_token, errors, is_error=True)
         # Return False as the device was not found
+        return False
+    
+    deviceFirstData = DeviceData.objects.filter(device_id__device_token = device_token).order_by('data__timestamp').first()
+    oldTimestamp = deviceFirstData.data["timestamp"]
+
+    if oldTimestamp > timestamp:
+        errors.append({
+            "status": "INVALID TIMESTAMP",
+            "message": "Received timestamp is less than first data timestamp",
+            "device_token": device_token,
+            "timestamp": timestamp
+        })
+        print('Received timestamp is greater than current timestamp firstTimestamp =',oldTimestamp,' - Received = ',timestamp)
+        publish_response(mqtt_client, device_token, errors, is_error=True)
+        return False
+    
+    currentTimestamp = time.time()
+    if currentTimestamp < timestamp:
+        errors.append({
+            "status": "INVALID TIMESTAMP",
+            "message": "Received timestamp is greater than current timestamp",
+            "device_token": device_token,
+            "timestamp": timestamp
+        })
+        print('Received timestamp is greater than current timestamp current =',currentTimestamp,' - Received',timestamp)
+        publish_response(mqtt_client, device_token, errors, is_error=True)
         return False
 
     if DeviceData.objects.filter(timestamp=str(timestamp),device_id__device_token=device_token).exists(): #check this line sir 
@@ -291,21 +318,22 @@ def handle_production_data(mqtt_client, message_data, log_data):
 
         machine = MachineDetails.objects.filter(machine_id=machine_id).first()
         if not machine:
-            errors.append(f"No machine found for machine_id: {machine_id}")
+            # errors.append(f"No machine found for machine_id: {machine_id}")
+            print(f"No machine found for machine_id: {machine_id}")
             continue
 
         last_production_data = ProductionData.objects.filter(machine_id=machine.machine_id).order_by('-date', '-time').first()
 
-        if last_production_data and last_production_data.production_count > production_count:
-            errors.append({
-                "status": "PRODUCTION COUNT ERROR",
-                "message": "Production count is less than last recorded count for " + machine_id,
-                "device_token": device_token,
-                "production_count": production_count,
-                "timestamp": timestamp
-            })
-            print('Production count is less than the last recorded count')
-            continue
+        # if last_production_data and last_production_data.production_count > production_count:
+        #     errors.append({
+        #         "status": "PRODUCTION COUNT ERROR",
+        #         "message": "Production count is less than last recorded count for " + machine_id,
+        #         "device_token": device_token,
+        #         "production_count": production_count,
+        #         "timestamp": timestamp
+        #     })
+        #     print('Production count is less than the last recorded count')
+        #     continue
 
         shift_instance = ShiftTiming.objects.filter(shift_number=shift_number).first()
         if not shift_instance:
@@ -346,14 +374,14 @@ def handle_production_data(mqtt_client, message_data, log_data):
             print(f'Error saving production data to database: {e}')
             continue
 
-    if errors:
-        for error in errors:
-            response = {
-                "status": "ERROR",
-                "message": error
-            }
-            publish_response(mqtt_client, device_token, response, is_error=True)
-        return False
+    # if errors:
+    #     for error in errors:
+    #         response = {
+    #             "status": "ERROR",
+    #             "message": error
+    #         }
+    #         publish_response(mqtt_client, device_token, response, is_error=True)
+    #     return False
 
     response = {
         "status": "OK",

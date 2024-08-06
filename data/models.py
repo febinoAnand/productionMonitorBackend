@@ -70,7 +70,7 @@ class LogData(models.Model):
     data_id = models.CharField(max_length=50, unique=False,null=True, blank=True)
 
     def __str__(self):
-        return self.data_id
+        return str(self.data_id)
     
 
 class DeviceData(models.Model):
@@ -100,7 +100,7 @@ class MachineData(models.Model):
     log_data_id = models.ForeignKey(LogData, on_delete=models.CASCADE)
 
     def __str__(self):
-        return str(self.device_id)
+        return str(self.machine_id.machine_name)
 
 class ProductionData(models.Model):
     date = models.DateField(blank=False)
