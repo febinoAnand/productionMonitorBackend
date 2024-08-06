@@ -200,7 +200,7 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
         # Return False as the device was not found
         return False
 
-    if DeviceData.objects.filter(timestamp=str(timestamp),device_token=device_token).exists(): #check this line sir 
+    if DeviceData.objects.filter(timestamp=str(timestamp),device_id__device_token=device_token).exists(): #check this line sir 
         errors.append({
             "status": "DUPLICATE TIMESTAMP",
             "message": "Duplicate timestamp found, data not saved.",
