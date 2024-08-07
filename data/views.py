@@ -906,11 +906,13 @@ class GroupMachineDataViewSet(viewsets.ViewSet):
 class ProductionViewSet(viewsets.ViewSet):
     def list(self, request):
         today = datetime.today().date()
-        group_data = self.get_group_data(today)
+        group_data, overall_total_production_count, overall_shift_totals = self.get_group_data(today)
 
         response_data = {
             'date': today,
             'group_data': group_data,
+            'overall_total_production_count': overall_total_production_count,
+            'overall_shift_totals': overall_shift_totals
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
@@ -918,15 +920,19 @@ class ProductionViewSet(viewsets.ViewSet):
     def get_group_data(self, today):
         groups = MachineGroup.objects.all()
         group_data = []
+        overall_total_production_count = 0
+        overall_shift_totals = {}
+
+        # Initialize the overall shift totals dictionary with all shift numbers set to 0
+        shift_timings = ShiftTiming.objects.all()
+        for shift in shift_timings:
+            overall_shift_totals[str(shift.shift_number)] = 0
 
         for group in groups:
             machines = group.machine_list.all()
             machine_data = []
 
             for machine in machines:
-                # Fetch all shift timings
-                shift_timings = ShiftTiming.objects.all()
-                
                 shift_dict = {
                     str(shift.shift_number): {
                         'date': today,
@@ -934,11 +940,14 @@ class ProductionViewSet(viewsets.ViewSet):
                         'shift_name': shift.shift_name,
                         'shift_start_time': shift.start_time,
                         'shift_end_time': shift.end_time,
-                        'Production_count':0
+                        'production_count': 0
                     } for shift in shift_timings
                 }
 
-                for shift in shift_timings:
+                previous_shift_last_count = 0  # Initialize the previous shift's last production count
+                total_production_count = 0
+
+                for i, shift in enumerate(shift_timings):
                     shift_number = shift.shift_number
 
                     # Fetch production data for the machine on the current date for the current shift
@@ -946,25 +955,40 @@ class ProductionViewSet(viewsets.ViewSet):
                         machine_id=machine.machine_id,
                         production_date=today,
                         shift_number=shift_number
-                    ).order_by('time')
+                    )
 
                     if production_data.exists():
                         first_data = production_data.first()
                         last_data = production_data.last()
-                        production_count = last_data.production_count - first_data.production_count
+
+                        if i == 0:
+                            production_count = last_data.production_count
+                            previous_shift_last_count = last_data.production_count
+                        else:
+                            production_count = last_data.production_count - previous_shift_last_count
 
                         shift_dict[str(shift_number)].update({
-                            
-                            'Production_count': production_count
+                            'production_count': production_count
                         })
+
+                        previous_shift_last_count = last_data.production_count
+                        total_production_count += production_count
+
+                        # Update the overall shift totals
+                        overall_shift_totals[str(shift_number)] += production_count
 
                 # Append machine data
                 machine_data.append({
                     'id': machine.id,
                     'machine_id': machine.machine_id,
                     'machine_name': machine.machine_name,
-                    'shifts': shift_dict
+                    'production_per_hour:':machine.production_per_hour,
+                    'shifts': shift_dict,
+                    'total_production_count': total_production_count
                 })
+
+                # Update the overall total production count
+                overall_total_production_count += total_production_count
 
             # Append group data
             group_data.append({
@@ -973,7 +997,10 @@ class ProductionViewSet(viewsets.ViewSet):
                 'machines': machine_data
             })
 
-        return group_data
+        return group_data, overall_total_production_count, overall_shift_totals
+
+
+
 
 
 class HourlyShiftReportViewSet(viewsets.ViewSet):
