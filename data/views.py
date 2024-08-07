@@ -12,7 +12,7 @@ from django.utils.dateparse import parse_date
 from datetime import datetime, timedelta
 from Userauth.models import UserDetail
 from django.db.models import Max
-
+from rest_framework.exceptions import NotFound
 
 class RawGetMethod(views.APIView):
     schema = None
@@ -1108,3 +1108,100 @@ class MachineHourlyDataViewSet(viewsets.ViewSet):
         except Exception as e:
             print("An error occurred:", str(e))
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class IndividualViewSet(viewsets.ViewSet):
+    def list(self, request):
+        today = timezone.now().date()
+        machines = MachineDetails.objects.all()
+        machine_data = MachineData.objects.all()
+        production_data_today = ProductionData.objects.filter(date=today)
+
+        machine_data_by_machine = {}
+        production_data_by_machine = {}
+
+        for data in machine_data:
+            machine_id = str(data.machine_id)
+            if machine_id not in machine_data_by_machine:
+                machine_data_by_machine[machine_id] = []
+            machine_data_by_machine[machine_id].append(data)
+
+        for production in production_data_today:
+            machine_id = str(production.machine_id)
+            if machine_id not in production_data_by_machine:
+                production_data_by_machine[machine_id] = []
+            production_data_by_machine[machine_id].append(production)
+
+        machine_details = []
+        for machine in machines:
+            machine_id = str(machine.machine_id)
+            machine_data_for_machine = machine_data_by_machine.get(machine_id, [])
+            production_data_for_machine = production_data_by_machine.get(machine_id, [])
+
+            machine_details.append({
+                "id": machine.id,
+                "machine_id": machine.machine_id,
+                "machine_name": machine.machine_name,
+                "line": machine.line,
+                "manufacture": machine.manufacture,
+                "year": machine.year,
+                "device": machine.device.id if machine.device else None,
+                "production_per_hour": machine.production_per_hour,
+                "create_date_time": machine.create_date_time,
+                "update_date_time": machine.update_date_time,
+                "machine_data": MachineDataSerializer(machine_data_for_machine, many=True).data,
+                "production_data": ProductionDataSerializer(production_data_for_machine, many=True).data
+            })
+
+        production_summary = production_data_today.aggregate(
+            total_production_count=Sum('production_count'),
+            total_target_production=Sum('target_production')
+        )
+
+        response_data = {
+            'machine_details': machine_details,
+            'total_production': production_summary
+        }
+        
+        return Response(response_data)
+
+    def retrieve(self, request, pk=None):
+        try:
+            machine = MachineDetails.objects.get(id=pk)
+        except MachineDetails.DoesNotExist:
+            raise NotFound("Machine not found")
+
+        today = timezone.now().date()
+        
+        machine_data = MachineData.objects.filter(machine_id=pk)
+        production_data_today = ProductionData.objects.filter(date=today, machine_id=machine.machine_id)
+
+        machine_data_serialized = MachineDataSerializer(machine_data, many=True).data
+        production_data_serialized = ProductionDataSerializer(production_data_today, many=True).data
+
+        machine_details = {
+            "id": machine.id,
+            "machine_id": machine.machine_id,
+            "machine_name": machine.machine_name,
+            "line": machine.line,
+            "manufacture": machine.manufacture,
+            "year": machine.year,
+            "device": machine.device.id if machine.device else None,
+            "production_per_hour": machine.production_per_hour,
+            "create_date_time": machine.create_date_time,
+            "update_date_time": machine.update_date_time,
+            "machine_data": machine_data_serialized,
+            "production_data": production_data_serialized
+        }
+
+        production_summary = production_data_today.aggregate(
+            total_production_count=Sum('production_count'),
+            total_target_production=Sum('target_production')
+        )
+
+        response_data = {
+            'machine_details': machine_details,
+            'total_production': production_summary
+        }
+        
+        return Response(response_data)
