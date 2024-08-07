@@ -179,7 +179,8 @@ def handle_command_message(mqtt_client, msg, message_data, log_data):
 
 def handle_machine_data(mqtt_client, msg, message_data, log_data):
     timestamp = message_data['timestamp']
-    dt = datetime.datetime.utcfromtimestamp(timestamp)
+    # dt = datetime.datetime.utcfromtimestamp(timestamp)
+    dt = datetime.datetime.fromtimestamp(timestamp)
     message_date = dt.date()
     message_time = dt.time()
 
@@ -305,7 +306,8 @@ def handle_production_data(mqtt_client, message_data, log_data):
         end_shift_time = end_shift_time_str
 
     timestamp = message_data['timestamp']
-    dt = datetime.datetime.utcfromtimestamp(timestamp)
+    # dt = datetime.datetime.utcfromtimestamp(timestamp)
+    dt = datetime.datetime.fromtimestamp(timestamp)
     message_date = dt.date()
     message_time = dt.time()
     device_token = message_data['device_token']
