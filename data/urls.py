@@ -21,7 +21,9 @@ from .views import (
     TableReportViewSet,
     GroupWiseMachineDataViewSet,
     GroupMachineDataViewSet,
-    ProductionViewSet
+    ProductionViewSet,
+    HourlyShiftReportViewSet,
+    MachineHourlyDataViewSet
 )
 from rest_framework import routers
 
@@ -44,6 +46,8 @@ router.register(r'table-report', TableReportViewSet, basename='TableReportViewSe
 router.register(r'group-wise-machine-data', GroupWiseMachineDataViewSet, basename='group-wise-machine-data')
 router.register(r'group-machine-data', GroupMachineDataViewSet, basename='group-machine-data')
 router.register(r'production', ProductionViewSet, basename='production')
+router.register(r'hourly-shift-report', HourlyShiftReportViewSet, basename='hourly-shift-report'),
+router.register(r'machine-hourly-data', MachineHourlyDataViewSet, basename='machine-hourly-data')
 
 urlpatterns = [
     path('livedata', LiveDataViewset.as_view()),

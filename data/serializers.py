@@ -74,12 +74,12 @@ class DeviceDataSerializer(serializers.ModelSerializer):
 class MachineDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = MachineData
-        fields = [  'date', 'time',  'machine_id', 'data', 'device_id', 'create_date_time', 'update_date_time', 'data_id','timestamp']
+        fields = [  'date', 'time',  'machine_id', 'data', 'device_id', 'create_date_time', 'update_date_time', 'log_data_id','timestamp']
 
 class ProductionDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductionData
-        fields = ['date', 'time','shift_number', 'shift_name',  'target_production', 'machine_id', 'machine_name', 'production_count','production_date', 'data_id','timestamp']
+        fields = ['date', 'time','shift_number', 'shift_name',  'target_production', 'machine_id', 'machine_name', 'production_count','production_date', 'log_data_id','timestamp']
         
 
 

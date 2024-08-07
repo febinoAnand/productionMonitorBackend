@@ -974,3 +974,137 @@ class ProductionViewSet(viewsets.ViewSet):
             })
 
         return group_data
+
+
+class HourlyShiftReportViewSet(viewsets.ViewSet):
+    def list(self, request):
+        try:
+            current_date = datetime.now().date()
+            shifts = ShiftTiming.objects.all().order_by('shift_number')
+            print("shifts", shifts)
+
+            shift_reports = {}
+
+            for shift in shifts:
+                shift_data = ProductionData.objects.filter(date=current_date, shift_number=shift.shift_number).order_by('time')
+                print("shift_data", shift_data)
+
+                if shift_data.exists():
+                    # Determine shift start time based on the first data received for this shift
+                    start_hour = shift_data.first().time.hour
+                else:
+                    # If no data, default to 0 hour
+                    start_hour = 0
+
+                # Initialize hourly_report with all hours set to 0
+                hourly_report = {f"{(start_hour + hour) % 24:02d}:00-{(start_hour + hour + 1) % 24:02d}:00": 0 for hour in range(24)}
+
+                total_count = 0
+
+                for data in shift_data:
+                    data_hour = data.time.hour
+                    hour_difference = (data_hour - start_hour) % 24
+                    time_slot = f"{(start_hour + hour_difference) % 24:02d}:00-{(start_hour + hour_difference + 1) % 24:02d}:00"
+                    hourly_report[time_slot] += data.production_count
+                    total_count += data.production_count
+
+                # Include all shifts in the report, even those without data
+                shift_reports[shift.shift_number] = {
+                    "total_count": total_count,
+                    "hourly_data": hourly_report
+                }
+
+            # Handle shifts with no data
+            all_shift_numbers = [shift.shift_number for shift in shifts]
+            for shift_number in all_shift_numbers:
+                if shift_number not in shift_reports:
+                    shift_reports[shift_number] = {
+                        "total_count": 0,
+                        "hourly_data": {f"{hour:02d}:00-{(hour + 1) % 24:02d}:00": 0 for hour in range(24)}
+                    }
+
+            return Response(shift_reports, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+
+class MachineHourlyDataViewSet(viewsets.ViewSet):
+    def create(self, request):
+        print("Received request with data:", request.data)
+        
+        machine_id = request.data.get('machine_id')
+        date = request.data.get('date')
+        
+        if not machine_id or not date:
+            print("machine_id and date are required parameters.")
+            return Response({"message": "machine_id and date are required parameters."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            date = parse_date(date)
+            if date is None:
+                print("Invalid date format.")
+                raise ValueError("Invalid date format.")
+            
+            shift_reports = {}
+            shifts = ShiftTiming.objects.all()
+            print("Retrieved shifts:", shifts)
+
+            for shift in shifts:
+                shift_data = ProductionData.objects.filter(date=date, machine_id=machine_id, shift_number=shift.shift_number).order_by('time')
+                print("Shift", shift.shift_number, "data:", shift_data)
+                
+                if shift_data.exists():
+                    first_time = shift_data.first().time
+                    last_time = shift_data.last().time
+                    print("First time:", first_time, "Last time:", last_time)
+
+                    # Generate hourly intervals between first and last data times
+                    hourly_intervals = []
+                    current_time = datetime.combine(date, first_time)
+                    end_time = datetime.combine(date, last_time)
+                    print("Generating hourly intervals from", current_time, "to", end_time)
+
+                    while current_time < end_time:
+                        next_time = current_time + timedelta(hours=1)
+                        hourly_intervals.append((current_time.time(), next_time.time()))
+                        current_time = next_time
+                    
+                    print("Hourly intervals:", hourly_intervals)
+                    hourly_data = {}
+
+                    for start_time, end_time in hourly_intervals:
+                        interval_data = shift_data.filter(time__gte=start_time, time__lt=end_time)
+                        print("Interval", start_time, "to", end_time, "data:", interval_data)
+                        
+                        if interval_data.exists():
+                            first_data = interval_data.first().production_count
+                            last_data = interval_data.last().production_count
+                            count = last_data - first_data
+                            print("First data:", first_data, "Last data:", last_data, "Count:", count)
+                        else:
+                            count = 0
+                            print("No data found for interval", start_time, "to", end_time)
+                        
+                        hourly_data[f"{start_time.strftime('%H:%M')}-{end_time.strftime('%H:%M')}"] = count
+
+                    shift_reports[shift.shift_number] = {
+                        "date": date,
+                        "first_data_time": first_time,
+                        "last_data_time": last_time,
+                        "hourly_data": hourly_data
+                    }
+                    print("Shift", shift.shift_number, "report:", shift_reports[shift.shift_number])
+                else:
+                    shift_reports[shift.shift_number] = {
+                        "date": date,
+                        "first_data_time": None,
+                        "last_data_time": None,
+                        "hourly_data": {}
+                    }
+                    print("No data found for shift", shift.shift_number)
+                
+            return Response(shift_reports, status=status.HTTP_200_OK)
+        except Exception as e:
+            print("An error occurred:", str(e))
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
