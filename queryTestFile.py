@@ -27,14 +27,17 @@ def generate_hourly_intervals_with_dates(from_date, to_date, start_time, end_tim
     
     start_datetime = datetime.strptime(f"{from_date} {start_time}", '%Y-%m-%d %H:%M:%S')
     end_datetime = datetime.strptime(f"{to_date} {end_time}", '%Y-%m-%d %H:%M:%S')
-        
+    
+    
     intervals = []
+
     
     if end_datetime <= start_datetime:
         end_datetime += timedelta(days=1)
 
+    
     while start_datetime < end_datetime:
-        next_datetime = start_datetime + timedelta(hours=1)
+        next_datetime = start_datetime + timedelta(hours=1) - timedelta(seconds=1)
         if next_datetime > end_datetime:
             intervals.append([
                 (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M')),
@@ -45,9 +48,20 @@ def generate_hourly_intervals_with_dates(from_date, to_date, start_time, end_tim
             (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M')),
             (next_datetime.strftime('%Y-%m-%d'), next_datetime.strftime('%H:%M'))
         ])
-        start_datetime = next_datetime
+        start_datetime = next_datetime + timedelta(seconds=1)
     
     return intervals
+
+
+
+
+def convert_to_12hr_format(time_24hr_str):
+    
+    time_24hr = datetime.strptime(time_24hr_str, '%H:%M')
+    
+    time_12hr_str = time_24hr.strftime('%I:%M %p')
+    
+    return time_12hr_str
 
 
 print ()
@@ -55,18 +69,14 @@ print ()
 
 allProductiondata = ProductionData.objects.all().order_by('timestamp').filter(production_date = selectDate, machine_id = machineID)
 
-# lastProductionData = ProductionData.objects.all().order_by('timestamp').filter(production_date = selectDate, machine_id = machineID).first()
+outputJSON = {}
 
-# lastProdcutionCount = lastProductionData.production_count
+outputJSON["date"] = selectDate.strftime('%Y-%m-%d')
+outputJSON["machine_id"] = machineID
 
-# print(allProductiondata)
-
-# allProductiondata =  allProductiondata.filter(date__gte="2024-08-06",date__lte="2024-08-07")
-# allProductiondata =  allProductiondata.filter(date__gte="2024-08-06",date__lte="2024-08-07").filter(time__gte = '22:00:00' , time__lte = '06:30:00' )
 
 for data in allProductiondata:
-    print (data.date,data.time,data.shift_number,data.production_count)
-
+    print (data.date,data.time,data.shift_number,data.production_count,data.timestamp)
 
 print ()
 
@@ -78,31 +88,49 @@ for shift in totalShifts:
 print ()
 
 # count = 0
-
+outputJSON["shifts"] = []
 
 for shift in totalShifts:
     if shift.shift_number == 0:
         continue
 
-    
-
     print ("shiftnumber=",shift.shift_number)
     
-    prodcutionDataQuerySet = ProductionData.objects.filter(production_date = selectDate, machine_id = machineID, shift_number = shift.shift_number).order_by('timestamp')
+    shiftJson = {}
+
+    shiftJson["shift_no"] = shift.shift_number
+    shiftJson["shift_name"] = shift.shift_name
+
+    
     
 
-    productionData = prodcutionDataQuerySet.first()
-    shift_start_date = productionData.date
-    shift_start_time = productionData.time
+    
+
+    allprodcutionDataQuerySet = ProductionData.objects.all().order_by('timestamp')
+
+    productionDataQuerySet = allprodcutionDataQuerySet.filter(production_date = selectDate, machine_id = machineID)
+    
+    currentShfitProduction = productionDataQuerySet.filter(shift_number = shift.shift_number)
+
+    firstProducitonData = currentShfitProduction.first()
+    lastProductiondData = currentShfitProduction.last()
+    
+    
+    shift_start_date = firstProducitonData.date
+    shift_start_time = firstProducitonData.time
     print("startDate =",shift_start_date)
     print("startTime =",shift_start_time)
 
-
-    productionData = prodcutionDataQuerySet.last()
-    shift_end_date = productionData.date
-    shift_end_time = productionData.time
+    shiftJson["shift_start_time"] = str(shift_start_date) + " " + str(shift_start_time)
+    
+    
+    shift_end_date = lastProductiondData.date
+    shift_end_time = lastProductiondData.time
     print("endDate =",shift_end_date)
     print("endTime =",shift_end_time)
+
+    shiftJson["shift_end_time"] = str(shift_end_date) + " " + str(shift_end_time)
+
 
 
     splitHours = generate_hourly_intervals_with_dates(str(shift_start_date), str(shift_end_date), str(shift_start_time), str(shift_end_time))
@@ -111,10 +139,16 @@ for shift in totalShifts:
     print ()
     print ()
 
+    lastIncCount = 0
+    
+    shiftTimingList = {}
 
     for startEndDateTime in splitHours:
+
+        
+
         count = 0
-        lastIncCount = 0
+        
 
         start_date = startEndDateTime[0][0]
         start_time = startEndDateTime[0][1]
@@ -122,22 +156,29 @@ for shift in totalShifts:
         end_date = startEndDateTime[1][0]
         end_time = startEndDateTime[1][1]
 
-        # print ("startEndDateTime", startEndDateTime)
-        
-
-        # temp_end_time = datetime.strptime(end_time,'%H:%M')
-
-        # temp_end_time -= timedelta(seconds=1)
-
-        # end_time = str(temp_end_time)
+  
 
         print (start_date, start_time, end_date, end_time)
-        
-        subData = prodcutionDataQuerySet.filter(date__gte = start_date, date__lte = end_date).filter(time__gte=start_time, time__lte=end_time)
 
+        
+
+        subData = productionDataQuerySet.filter(date__gte = start_date, date__lte = end_date).filter(time__gte=start_time, time__lte=end_time)
+
+        try:
+            subDataFirst = subData.first()
+            firstBeforeData = allprodcutionDataQuerySet.filter(machine_id = machineID,timestamp__lt = subDataFirst.timestamp).last()
+            lastIncCount = firstBeforeData.production_count
+            
+        except:
+            pass
+
+        print(" -> LastIncCount",lastIncCount)
+        
         for dta in subData:
 
-            print (" ->",dta.date,dta.time,dta.shift_number,dta.production_count)
+            
+
+            print (" ->",dta.date,dta.time,dta.shift_number,dta.production_count,dta.timestamp)
             temp = dta.production_count - lastIncCount
             if temp < 0:
                 count += dta.production_count
@@ -146,11 +187,18 @@ for shift in totalShifts:
 
             lastIncCount = dta.production_count
         print (" -> Total =",count)
+        shiftTimingList[convert_to_12hr_format(start_time) + " - " + convert_to_12hr_format(end_time)] = count
         print()
+
+    shiftJson["timing"] = shiftTimingList
 
     print ()
     print ()
     print ()
+
+    outputJSON["shifts"].append(shiftJson)
+
+print ("output json", outputJSON)
 
 
     
