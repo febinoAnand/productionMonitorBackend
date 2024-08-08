@@ -217,3 +217,9 @@ class ProductionTableSerializer(serializers.Serializer):
     date = serializers.DateField()
     groups = GroupDataSerializer(many=True)
     
+class HourlyShiftReportSerializer(serializers.Serializer):
+    shift_no = serializers.IntegerField()
+    shift_name = serializers.CharField()
+    shift_start_time = serializers.DateTimeField()
+    shift_end_time = serializers.DateTimeField()
+    timing = serializers.DictField(child=serializers.IntegerField())
