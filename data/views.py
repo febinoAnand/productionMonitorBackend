@@ -905,100 +905,88 @@ class GroupMachineDataViewSet(viewsets.ViewSet):
 
 class ProductionViewSet(viewsets.ViewSet):
     def list(self, request):
-        # Set date to today's date
-       # Set date to 3 days before today's date
         select_date = datetime.today().date() - timedelta(days=3)
         print("Selected Date:", select_date)
 
-        # Query for all machine IDs
-        machine_ids = ProductionData.objects.filter(production_date=select_date).values_list('machine_id', flat=True).distinct()
-
+        machine_groups = MachineGroup.objects.all()
         output_json = {
             "date": select_date.strftime('%Y-%m-%d'),
-            "machines": []
+            "machine_groups": []
         }
 
-        # Loop through each machine
-        for machine_id in machine_ids:
-            machine_json = {
-                "machine_id": machine_id,
-                "shifts": []
+        for group in machine_groups:
+            group_json = {
+                "group_name": group.group_name,
+                "machines": []
             }
 
-            # Query for production data for the machine
-            all_production_data = ProductionData.objects.filter(production_date=select_date, machine_id=machine_id).order_by('timestamp')
-
-            # Query for all shifts
-            total_shifts = ShiftTiming.objects.all()
-
-            for shift in total_shifts:
-                if shift.shift_number == 0:
-                    continue
-
-                print("Shift number =", shift.shift_number)
-
-                shift_json = {
-                    "shift_no": shift.shift_number,
-                    "shift_name": shift.shift_name,
-                    "shift_start_time": None,
-                    "shift_end_time": None,
-                    "production_count": 0
+            for machine in group.machine_list.all():
+                machine_json = {
+                    "machine_id": machine.machine_id,
+                    "shifts": []
                 }
 
-                # Get the production data for the current shift
-                current_shift_production = all_production_data.filter(shift_number=shift.shift_number)
+                all_production_data = ProductionData.objects.filter(production_date=select_date, machine_id=machine.machine_id).order_by('timestamp')
+                print("All Production Data for Machine ID", machine.machine_id, ":", all_production_data)
 
-                if current_shift_production.exists():
-                    first_production_data = current_shift_production.first()
-                    last_production_data = current_shift_production.last()
+                total_shifts = ShiftTiming.objects.all()
 
-                    shift_start_date = first_production_data.date
-                    shift_start_time = first_production_data.time
-                    print("Start Date =", shift_start_date)
-                    print("Start Time =", shift_start_time)
+                for shift in total_shifts:
+                    if shift.shift_number == 0:
+                        continue
 
-                    shift_json["shift_start_time"] = str(shift_start_date) + " " + str(shift_start_time)
+                    shift_json = {
+                        "shift_no": shift.shift_number,
+                        "shift_name": shift.shift_name,
+                        "shift_start_time": None,
+                        "shift_end_time": None,
+                        "production_count": 0
+                    }
 
-                    shift_end_date = last_production_data.date
-                    shift_end_time = last_production_data.time
-                    print("End Date =", shift_end_date)
-                    print("End Time =", shift_end_time)
+                    current_shift_production = all_production_data.filter(shift_number=shift.shift_number)
+                    print("Current Shift Production for Shift Number", shift.shift_number, ":", current_shift_production)
 
-                    shift_json["shift_end_time"] = str(shift_end_date) + " " + str(shift_end_time)
+                    if current_shift_production.exists():
+                        first_production_data = current_shift_production.first()
+                        last_production_data = current_shift_production.last()
 
-                    # Calculate total production count for the shift
-                    last_inc_count = 0
-                    production_count = 0
+                        shift_json["shift_start_time"] = f"{first_production_data.date} {first_production_data.time}"
+                        shift_json["shift_end_time"] = f"{last_production_data.date} {last_production_data.time}"
 
-                    try:
-                        first_before_data = all_production_data.filter(
-                            machine_id=machine_id,
-                            timestamp__lt=first_production_data.timestamp
-                        ).last()
-                        last_inc_count = first_before_data.production_count
-                    except:
-                        pass
+                        last_inc_count = 0
+                        production_count = 0
 
-                    print(" -> LastIncCount", last_inc_count)
+                        try:
+                            first_before_data = all_production_data.filter(
+                                machine_id=machine.machine_id,
+                                timestamp__lt=first_production_data.timestamp
+                            ).last()
+                            if first_before_data:
+                                last_inc_count = first_before_data.production_count
+                        except Exception as e:
+                            print("Error calculating last increment count:", e)
 
-                    for data in current_shift_production:
-                        print(" ->", data.date, data.time, data.shift_number, data.production_count, data.timestamp)
-                        temp = data.production_count - last_inc_count
-                        production_count += temp if temp >= 0 else data.production_count
-                        last_inc_count = data.production_count
+                        print(" -> LastIncCount", last_inc_count)
 
-                    print(" -> Total Production Count =", production_count)
-                    shift_json["production_count"] = production_count
-                    print()
-                    print()
+                        for data in current_shift_production:
+                            print(" -> Data Entry:", data.date, data.time, data.shift_number, data.production_count, data.timestamp)
+                            temp = data.production_count - last_inc_count
+                            production_count += max(temp, 0)
+                            last_inc_count = data.production_count
+                            print(" -> Temp:", temp, "Production Count:", production_count)
 
-                machine_json["shifts"].append(shift_json)
+                        shift_json["production_count"] = production_count
+                        print()
+                        print()
 
-            output_json["machines"].append(machine_json)
+                    machine_json["shifts"].append(shift_json)
+
+                group_json["machines"].append(machine_json)
+
+            output_json["machine_groups"].append(group_json)
 
         print("Output JSON", output_json)
         return Response(output_json, status=status.HTTP_200_OK)
-
 
 
 
