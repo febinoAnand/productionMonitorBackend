@@ -1094,12 +1094,15 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
 
                     sub_data = current_shift_production.filter(
                         date__gte=start_date, date__lte=end_date,
-                        time__gte=start_time, time__lte=end_time
+                        time__gte=start_time, time__lt=end_time
                     )
+                    
+                    if end_date == shift_end_date.strftime("%Y-%m-%d") and end_time == shift_end_time.strftime("%H:%M"):
+                        sub_data = current_shift_production.filter(date__gte = start_date, date__lte = end_date).filter(time__gte=start_time, time__lte=end_time)
 
                     try:
                         sub_data_first = sub_data.first()
-                        first_before_data = all_production_data.filter(
+                        first_before_data = ProductionData.objects.filter(
                             machine_id=machine_id,
                             timestamp__lt=sub_data_first.timestamp
                         ).last()
@@ -1139,7 +1142,7 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
             end_datetime += timedelta(days=1)
 
         while start_datetime < end_datetime:
-            next_datetime = start_datetime + timedelta(hours=1) - timedelta(seconds=1)
+            next_datetime = start_datetime + timedelta(hours=1) 
             if next_datetime > end_datetime:
                 intervals.append([
                     (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M')),
@@ -1150,7 +1153,7 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
                 (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M')),
                 (next_datetime.strftime('%Y-%m-%d'), next_datetime.strftime('%H:%M'))
             ])
-            start_datetime = next_datetime + timedelta(seconds=1)
+            start_datetime = next_datetime 
 
         return intervals
 
