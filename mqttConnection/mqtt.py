@@ -202,19 +202,35 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
         # Return False as the device was not found
         return False
     
-    deviceFirstData = DeviceData.objects.filter(device_id__device_token = device_token).order_by('data__timestamp').first()
-    oldTimestamp = deviceFirstData.data["timestamp"]
+        # Retrieve the first data entry for the device based on the timestamp
+    deviceFirstData = DeviceData.objects.filter(device_id__device_token=device_token).order_by('data__timestamp').first()
 
-    if oldTimestamp > timestamp:
-        errors.append({
-            "status": "INVALID TIMESTAMP",
-            "message": "Received timestamp is less than first data timestamp",
-            "device_token": device_token,
-            "timestamp": timestamp
-        })
-        print('Received timestamp is greater than current timestamp firstTimestamp =',oldTimestamp,' - Received = ',timestamp)
-        publish_response(mqtt_client, device_token, errors, is_error=True)
-        return False
+    # Check if deviceFirstData exists and contains the timestamp
+    if deviceFirstData and "timestamp" in deviceFirstData.data:
+        oldTimestamp = deviceFirstData.data["timestamp"]
+
+        # Compare the old timestamp with the incoming timestamp
+        if oldTimestamp > timestamp:
+            errors.append({
+                "status": "INVALID TIMESTAMP",
+                "message": "Received timestamp is less than first data timestamp",
+                "device_token": device_token,
+                "timestamp": timestamp
+            })
+            print('Received timestamp is less than current timestamp: firstTimestamp =', oldTimestamp, '- Received =', timestamp)
+            publish_response(mqtt_client, device_token, errors, is_error=True)
+            return False
+    else:
+        # Handle case where no prior data exists or the timestamp key is missing
+        # errors.append({
+        #     "status": "MISSING DATA",
+        #     "message": "No previous timestamp found for the device or timestamp is missing",
+        #     "device_token": device_token
+        # })
+        # print('No previous timestamp found for device_token:', device_token)
+        # publish_response(mqtt_client, device_token, errors, is_error=True)
+        # return False
+        print('No previous data found. Saving this as the first data entry for device_token:', device_token)
     
     currentTimestamp = time.time()
     if currentTimestamp < timestamp:
