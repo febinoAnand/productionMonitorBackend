@@ -404,6 +404,9 @@ def handle_production_data(mqtt_client, message_data, log_data):
 
 
 mqtt_client = mqtt.Client()
+MAX_RECONNECT_ATTEMPTS = 5  # Maximum number of reconnection attempts
+RECONNECT_DELAY = 5  # Delay between reconnection attempts in seconds
+
 
 def get_mqtt_settings():
     try:
@@ -425,19 +428,41 @@ def get_mqtt_settings():
     except Exception as e:
         print ("Error in getting MQTT settings:",e)
 
-def start_mqtt_client():
 
-    mqtt_settings = get_mqtt_settings()
+def on_disconnect(client, userdata, rc):
+    if rc != 0:
+        print("Unexpected disconnection.")
+        attempt_reconnect(client)
+
+
+def attempt_reconnect(client):
+    attempt = 0
+    while attempt < MAX_RECONNECT_ATTEMPTS:
+        try:
+            mqtt_settings = get_mqtt_settings()
+            client.username_pw_set(mqtt_settings["username"], mqtt_settings["password"])
+            client.connect(mqtt_settings["host"], mqtt_settings["port"], mqtt_settings["keepalive"])
+            client.loop_start()
+            print("Reconnected successfully.")
+            return  # Exit the loop if reconnection is successful
+        except Exception as e:
+            attempt += 1
+            print(f"Reconnection attempt {attempt}/{MAX_RECONNECT_ATTEMPTS} failed: {e}")
+            time.sleep(RECONNECT_DELAY)
+    
+    print("Failed to reconnect after multiple attempts.")
+
+def start_mqtt_client():
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
+    mqtt_client.on_disconnect = on_disconnect
+
+    mqtt_settings = get_mqtt_settings()
     
     try:
         mqtt_client.username_pw_set(mqtt_settings["username"], mqtt_settings["password"])
-        mqtt_client.connect(
-            host=mqtt_settings["host"],
-            port=mqtt_settings["port"],
-            keepalive=mqtt_settings["keepalive"]
-        )
+        mqtt_client.connect(mqtt_settings["host"], mqtt_settings["port"], mqtt_settings["keepalive"])
         mqtt_client.loop_start()
     except Exception as e:
-        print ("MQTT not connected..",e)
+        print("MQTT not connected. Error:", e)
+        attempt_reconnect(mqtt_client)
