@@ -904,8 +904,18 @@ class GroupMachineDataViewSet(viewsets.ViewSet):
 
 
 class ProductionViewSet(viewsets.ViewSet):
-    def list(self, request):
-        select_date = datetime.today().date() - timedelta(days=3)
+    http_method_names = ['post']
+
+    def create(self, request):
+        select_date = request.data.get('date')
+        if not select_date:
+            return Response({"error": "Date is required. Please provide a date in YYYY-MM-DD format."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            select_date = datetime.strptime(select_date, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+
         print("Selected Date:", select_date)
 
         machine_groups = MachineGroup.objects.all()
