@@ -26,6 +26,7 @@ urlpatterns = [
     path('weblogin/', WebLoginView.as_view(), name='weblogin'),
     path('weblogout/', WebLogoutView.as_view(), name='weblogout'),
     path('change-password/', AdminChangePasswordView.as_view(), name='admin-change-password'),
+    path('check-token/', CheckAuthToken.as_view(), name='check-token'),
 ]
 
 

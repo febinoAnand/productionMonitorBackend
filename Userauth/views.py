@@ -1175,3 +1175,21 @@ class AdminChangePasswordView(APIView):
         user.save()
 
         return Response({'status': 'OK', 'message': 'Password updated successfully'}, status=status.HTTP_200_OK)
+
+class CheckAuthToken(APIView):
+    def get(self, request):
+        auth_header = request.headers.get('Authorization')
+        
+        if not auth_header:
+            return Response({'error': 'Authorization header not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        token_key = auth_header.split(' ')[1] if ' ' in auth_header else None
+
+        if not token_key:
+            return Response({'error': 'Token not provided in header'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            token = Token.objects.get(key=token_key)
+            return Response({'valid': True, 'message': 'Token is valid'}, status=status.HTTP_200_OK)
+        except Token.DoesNotExist:
+            return Response({'valid': False, 'message': 'Token not found'}, status=status.HTTP_404_NOT_FOUND)
