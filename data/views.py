@@ -1346,25 +1346,33 @@ class ShiftDataViewSet(viewsets.ViewSet):
 
         previous_counts = {}
         group_data = {}
-        shift_totals = {}
-        current_shift_no = None
+        total_production_count = 0
+        total_target_production = 0
+        total_count_difference = 0
+
+        current_shift = None
 
         for data in production_data_today:
-            shift_no = data.shift_number
+            if data.shift_number != current_shift:
+                current_shift = data.shift_number
+                for group_id in group_data:
+                    group_data[group_id]['total_production_count'] = 0
+                    group_data[group_id]['total_target_production'] = 0
+                    group_data[group_id]['total_count_difference'] = 0
 
-            if shift_no != current_shift_no:
-                current_shift_no = shift_no
-                previous_counts[current_shift_no] = {}
-                shift_totals[current_shift_no] = {
-                    'total_production_count': 0,
-                    'total_target_production': 0,
-                    'total_count_difference': 0
-                }
-                group_data = {}
+            if data.machine_id in previous_counts:
+                previous_count = previous_counts[data.machine_id]
+            else:
+                previous_count = 0
 
-            previous_count = previous_counts[current_shift_no].get(data.machine_id, 0)
             count_diff = data.production_count - previous_count
-            previous_counts[current_shift_no][data.machine_id] = data.production_count
+
+            print(f"Machine ID: {data.machine_id}, Machine Name: {data.machine_name}")
+            print(f"Previous Production Count: {previous_count}")
+            print(f"Current Production Count: {data.production_count}")
+            print(f"Count Difference: {count_diff}\n")
+
+            previous_counts[data.machine_id] = data.production_count
 
             try:
                 group = MachineGroup.objects.filter(machine_list__machine_name=data.machine_name).first()
@@ -1406,9 +1414,9 @@ class ShiftDataViewSet(viewsets.ViewSet):
             group_data[group_id]['total_target_production'] += data.target_production
             group_data[group_id]['total_count_difference'] += count_diff
 
-            shift_totals[current_shift_no]['total_production_count'] += data.production_count
-            shift_totals[current_shift_no]['total_target_production'] += data.target_production
-            shift_totals[current_shift_no]['total_count_difference'] += count_diff
+            total_production_count += data.production_count
+            total_target_production += data.target_production
+            total_count_difference += count_diff
 
         response_data = {
             'groups': [
@@ -1418,10 +1426,9 @@ class ShiftDataViewSet(viewsets.ViewSet):
                 }
                 for group in group_data.values()
             ],
-            'todays_total_production_count': sum(totals['total_production_count'] for totals in shift_totals.values()),
-            'todays_total_target_production': sum(totals['total_target_production'] for totals in shift_totals.values()),
-            'todays_total_count_difference': sum(totals['total_count_difference'] for totals in shift_totals.values()),
-            'shift_totals': shift_totals
+            'total_production_count': total_production_count,
+            'total_target_production': total_target_production,
+            'total_count_difference': total_count_difference
         }
 
         return Response(response_data)
