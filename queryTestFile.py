@@ -12,8 +12,8 @@ from datetime import datetime, timedelta
 
 
 
-selectDate = date(2024,8,8)
-machineID = 'VirutalDevice-1'
+selectDate = date(2024,8,10)
+machineID = 'M003'
 
 print("Current Date -->",selectDate)
 print("Machine ID -->",machineID)
@@ -36,13 +36,13 @@ def generate_hourly_intervals_with_dates(from_date, to_date, start_time, end_tim
         next_datetime = start_datetime + timedelta(hours=1) 
         if next_datetime > end_datetime:
             intervals.append([
-                (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M')),
-                (end_datetime.strftime('%Y-%m-%d'), end_datetime.strftime('%H:%M'))
+                (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:%S')),
+                (end_datetime.strftime('%Y-%m-%d'), end_datetime.strftime('%H:%M:%S'))
             ])
             break
         intervals.append([
-            (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M')),
-            (next_datetime.strftime('%Y-%m-%d'), next_datetime.strftime('%H:%M'))
+            (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:%S')),
+            (next_datetime.strftime('%Y-%m-%d'), next_datetime.strftime('%H:%M:%S'))
         ])
         start_datetime = next_datetime 
     
@@ -51,7 +51,7 @@ def generate_hourly_intervals_with_dates(from_date, to_date, start_time, end_tim
 
 def convert_to_12hr_format(time_24hr_str):
     
-    time_24hr = datetime.strptime(time_24hr_str, '%H:%M')
+    time_24hr = datetime.strptime(time_24hr_str, '%H:%M:%S')
     
     time_12hr_str = time_24hr.strftime('%I:%M %p')
     
@@ -131,12 +131,14 @@ for shift in totalShifts:
         print ()
 
         lastIncCount = 0
+        actualCount = 0
         
         shiftTimingList = {}
 
         for startEndDateTime in splitHours:
 
             count = 0
+            
             
             start_date = startEndDateTime[0][0]
             start_time = startEndDateTime[0][1]
@@ -149,7 +151,7 @@ for shift in totalShifts:
 
             subData = productionDataQuerySet.filter(date__gte = start_date, date__lte = end_date).filter(time__gte=start_time, time__lt=end_time)
 
-            if end_date == shift_end_date.strftime("%Y-%m-%d") and end_time == shift_end_time.strftime("%H:%M"):
+            if end_date == shift_end_date.strftime("%Y-%m-%d") and end_time == shift_end_time.strftime("%H:%M:%S"):
                 subData = productionDataQuerySet.filter(date__gte = start_date, date__lte = end_date).filter(time__gte=start_time, time__lte=end_time)
 
             try:

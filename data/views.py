@@ -1092,10 +1092,10 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
 
                     sub_data = current_shift_production.filter(
                         date__gte=start_date, date__lte=end_date,
-                        time__gte=start_time, time__lt=end_time
+                        time__gte=start_time, time__lte=end_time
                     )
                     
-                    if end_date == shift_end_date.strftime("%Y-%m-%d") and end_time == shift_end_time.strftime("%H:%M"):
+                    if end_date == shift_end_date.strftime("%Y-%m-%d") and end_time == shift_end_time.strftime("%H:%M:%S"):
                         sub_data = current_shift_production.filter(date__gte = start_date, date__lte = end_date).filter(time__gte=start_time, time__lte=end_time)
 
                     try:
@@ -1143,20 +1143,20 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
             next_datetime = start_datetime + timedelta(hours=1) 
             if next_datetime > end_datetime:
                 intervals.append([
-                    (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M')),
-                    (end_datetime.strftime('%Y-%m-%d'), end_datetime.strftime('%H:%M'))
+                    (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:%S')),
+                    (end_datetime.strftime('%Y-%m-%d'), end_datetime.strftime('%H:%M:%S'))
                 ])
                 break
             intervals.append([
-                (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M')),
-                (next_datetime.strftime('%Y-%m-%d'), next_datetime.strftime('%H:%M'))
+                (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:%S')),
+                (next_datetime.strftime('%Y-%m-%d'), next_datetime.strftime('%H:%M:%S'))
             ])
             start_datetime = next_datetime 
 
         return intervals
 
     def convert_to_12hr_format(self, time_24hr_str):
-        time_24hr = datetime.strptime(time_24hr_str, '%H:%M')
+        time_24hr = datetime.strptime(time_24hr_str, '%H:%M:%S')
         time_12hr_str = time_24hr.strftime('%I:%M %p')
         return time_12hr_str
         
@@ -1338,3 +1338,60 @@ class IndividualViewSet(viewsets.ViewSet):
         }
         
         return Response(response_data)
+    
+class AchievementsViewSet(viewsets.ViewSet):
+    def list(self, request):
+
+        end_date = datetime.today().date()
+        start_date = end_date - timedelta(days=9)
+        print("Date Range:", start_date, "to", end_date)
+
+        machine_groups = MachineGroup.objects.all()
+        output_json = {
+            "start_date": start_date.strftime('%Y-%m-%d'),
+            "end_date": end_date.strftime('%Y-%m-%d'),
+            "achievements": []
+        }
+
+        for group in machine_groups:
+            group_json = {
+                "group_name": group.group_name,
+                "dates": []
+            }
+
+            for single_date in [start_date + timedelta(days=x) for x in range((end_date - start_date).days + 1)]:
+                date_json = {
+                    "date": single_date.strftime('%Y-%m-%d'),
+                    "shifts": []
+                }
+
+                total_shifts = ShiftTiming.objects.all()
+
+                for shift in total_shifts:
+                    if shift.shift_number == 0:
+                        continue
+
+                    shift_json = {
+                        "shift_no": shift.shift_number,
+                        "shift_name": shift.shift_name,
+                        "total_production_count": 0
+                    }
+
+                   
+                    all_production_data = ProductionData.objects.filter(
+                        production_date=single_date,
+                        shift_number=shift.shift_number,
+                        machine_id__in=[machine.machine_id for machine in group.machine_list.all()]
+                    )
+
+                    total_production_count = all_production_data.aggregate(total_count=Sum('production_count'))['total_count'] or 0
+
+                    shift_json["total_production_count"] = total_production_count
+                    date_json["shifts"].append(shift_json)
+
+                group_json["dates"].append(date_json)
+
+            output_json["achievements"].append(group_json)
+
+        print("Output JSON", output_json)
+        return Response(output_json, status=status.HTTP_200_OK)
