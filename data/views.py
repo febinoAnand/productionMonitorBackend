@@ -1338,3 +1338,90 @@ class IndividualViewSet(viewsets.ViewSet):
         }
         
         return Response(response_data)
+    
+class ShiftDataViewSet(viewsets.ViewSet):
+    def list(self, request):
+        today = timezone.now().date()
+        production_data_today = ProductionData.objects.filter(date=today).order_by('timestamp')
+
+        previous_counts = {}
+        group_data = {}
+        shift_totals = {}
+        current_shift_no = None
+
+        for data in production_data_today:
+            shift_no = data.shift_number
+
+            if shift_no != current_shift_no:
+                current_shift_no = shift_no
+                previous_counts[current_shift_no] = {}
+                shift_totals[current_shift_no] = {
+                    'total_production_count': 0,
+                    'total_target_production': 0,
+                    'total_count_difference': 0
+                }
+                group_data = {}
+
+            previous_count = previous_counts[current_shift_no].get(data.machine_id, 0)
+            count_diff = data.production_count - previous_count
+            previous_counts[current_shift_no][data.machine_id] = data.production_count
+
+            try:
+                group = MachineGroup.objects.filter(machine_list__machine_name=data.machine_name).first()
+                group_id = group.id if group else None
+                group_name = group.group_name if group else "Unknown Group"
+            except MachineGroup.DoesNotExist:
+                group_id = None
+                group_name = "Unknown Group"
+
+            if group_id not in group_data:
+                group_data[group_id] = {
+                    'group_id': group_id,
+                    'group_name': group_name,
+                    'machine_count': 0,
+                    'machines': {},
+                    'total_production_count': 0,
+                    'total_target_production': 0,
+                    'total_count_difference': 0
+                }
+
+            if data.machine_id in group_data[group_id]['machines']:
+                machine_data = group_data[group_id]['machines'][data.machine_id]
+                machine_data['production_count'] = data.production_count
+                machine_data['target_production'] = data.target_production
+                machine_data['count_difference'] = count_diff
+                machine_data['previous_production_count'] = previous_count
+            else:
+                group_data[group_id]['machines'][data.machine_id] = {
+                    'machine_id': data.machine_id,
+                    'machine_name': data.machine_name,
+                    'production_count': data.production_count,
+                    'target_production': data.target_production,
+                    'count_difference': count_diff,
+                    'previous_production_count': previous_count
+                }
+                group_data[group_id]['machine_count'] += 1
+
+            group_data[group_id]['total_production_count'] += data.production_count
+            group_data[group_id]['total_target_production'] += data.target_production
+            group_data[group_id]['total_count_difference'] += count_diff
+
+            shift_totals[current_shift_no]['total_production_count'] += data.production_count
+            shift_totals[current_shift_no]['total_target_production'] += data.target_production
+            shift_totals[current_shift_no]['total_count_difference'] += count_diff
+
+        response_data = {
+            'groups': [
+                {
+                    **group,
+                    'machines': list(group['machines'].values())
+                }
+                for group in group_data.values()
+            ],
+            'todays_total_production_count': sum(totals['total_production_count'] for totals in shift_totals.values()),
+            'todays_total_target_production': sum(totals['total_target_production'] for totals in shift_totals.values()),
+            'todays_total_count_difference': sum(totals['total_count_difference'] for totals in shift_totals.values()),
+            'shift_totals': shift_totals
+        }
+
+        return Response(response_data)
