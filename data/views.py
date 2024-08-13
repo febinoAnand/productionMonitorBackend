@@ -1405,59 +1405,96 @@ class IndividualViewSet(viewsets.ViewSet):
         
         return Response(response_data)
     
-class AchievementsViewSet(viewsets.ViewSet):
+class ShiftDataViewSet(viewsets.ViewSet):
     def list(self, request):
+        today = timezone.now().date()
+        production_data_today = ProductionData.objects.filter(date=today).order_by('timestamp')
 
-        end_date = datetime.today().date()
-        start_date = end_date - timedelta(days=9)
-        print("Date Range:", start_date, "to", end_date)
+        previous_counts = {}
+        group_data = {}
+        total_production_count = 0
+        total_target_production = 0
+        total_count_difference = 0
 
-        machine_groups = MachineGroup.objects.all()
-        output_json = {
-            "start_date": start_date.strftime('%Y-%m-%d'),
-            "end_date": end_date.strftime('%Y-%m-%d'),
-            "achievements": []
-        }
+        current_shift = None
 
-        for group in machine_groups:
-            group_json = {
-                "group_name": group.group_name,
-                "dates": []
-            }
+        for data in production_data_today:
+            if data.shift_number != current_shift:
+                current_shift = data.shift_number
+                for group_id in group_data:
+                    group_data[group_id]['total_production_count'] = 0
+                    group_data[group_id]['total_target_production'] = 0
+                    group_data[group_id]['total_count_difference'] = 0
 
-            for single_date in [start_date + timedelta(days=x) for x in range((end_date - start_date).days + 1)]:
-                date_json = {
-                    "date": single_date.strftime('%Y-%m-%d'),
-                    "shifts": []
+            if data.machine_id in previous_counts:
+                previous_count = previous_counts[data.machine_id]
+            else:
+                previous_count = 0
+
+            count_diff = data.production_count - previous_count
+
+            print(f"Machine ID: {data.machine_id}, Machine Name: {data.machine_name}")
+            print(f"Previous Production Count: {previous_count}")
+            print(f"Current Production Count: {data.production_count}")
+            print(f"Count Difference: {count_diff}\n")
+
+            previous_counts[data.machine_id] = data.production_count
+
+            try:
+                group = MachineGroup.objects.filter(machine_list__machine_name=data.machine_name).first()
+                group_id = group.id if group else None
+                group_name = group.group_name if group else "Unknown Group"
+            except MachineGroup.DoesNotExist:
+                group_id = None
+                group_name = "Unknown Group"
+
+            if group_id not in group_data:
+                group_data[group_id] = {
+                    'group_id': group_id,
+                    'group_name': group_name,
+                    'machine_count': 0,
+                    'machines': {},
+                    'total_production_count': 0,
+                    'total_target_production': 0,
+                    'total_count_difference': 0
                 }
 
-                total_shifts = ShiftTiming.objects.all()
+            if data.machine_id in group_data[group_id]['machines']:
+                machine_data = group_data[group_id]['machines'][data.machine_id]
+                machine_data['production_count'] = data.production_count
+                machine_data['target_production'] = data.target_production
+                machine_data['count_difference'] = count_diff
+                machine_data['previous_production_count'] = previous_count
+            else:
+                group_data[group_id]['machines'][data.machine_id] = {
+                    'machine_id': data.machine_id,
+                    'machine_name': data.machine_name,
+                    'production_count': data.production_count,
+                    'target_production': data.target_production,
+                    'count_difference': count_diff,
+                    'previous_production_count': previous_count
+                }
+                group_data[group_id]['machine_count'] += 1
 
-                for shift in total_shifts:
-                    if shift.shift_number == 0:
-                        continue
+            group_data[group_id]['total_production_count'] += data.production_count
+            group_data[group_id]['total_target_production'] += data.target_production
+            group_data[group_id]['total_count_difference'] += count_diff
 
-                    shift_json = {
-                        "shift_no": shift.shift_number,
-                        "shift_name": shift.shift_name,
-                        "total_production_count": 0
-                    }
+            total_production_count += data.production_count
+            total_target_production += data.target_production
+            total_count_difference += count_diff
 
-                   
-                    all_production_data = ProductionData.objects.filter(
-                        production_date=single_date,
-                        shift_number=shift.shift_number,
-                        machine_id__in=[machine.machine_id for machine in group.machine_list.all()]
-                    )
+        response_data = {
+            'groups': [
+                {
+                    **group,
+                    'machines': list(group['machines'].values())
+                }
+                for group in group_data.values()
+            ],
+            'total_production_count': total_production_count,
+            'total_target_production': total_target_production,
+            'total_count_difference': total_count_difference
+        }
 
-                    total_production_count = all_production_data.aggregate(total_count=Sum('production_count'))['total_count'] or 0
-
-                    shift_json["total_production_count"] = total_production_count
-                    date_json["shifts"].append(shift_json)
-
-                group_json["dates"].append(date_json)
-
-            output_json["achievements"].append(group_json)
-
-        print("Output JSON", output_json)
-        return Response(output_json, status=status.HTTP_200_OK)
+        return Response(response_data)
