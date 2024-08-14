@@ -1016,6 +1016,7 @@ class ProductionViewSet(viewsets.ViewSet):
                             print(" -> Total =", count)
                             shift_timing_list[self.convert_to_12hr_format(start_time) + " - " + self.convert_to_12hr_format(end_time)] = count
                             print()
+                            
                             shift_json["total_shift_production_count"] += count
 
                         shift_json["timing"] = shift_timing_list
