@@ -1160,20 +1160,18 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
 
                     for data in sub_data:
                         temp_count = data.production_count - last_inc_count
-                        
-
                         count += temp_count if temp_count >= 0 else data.production_count
-                     
-
                         last_inc_count = data.production_count
-
                         target_production_count += data.target_production
 
-                        # Debugging: Check data values
-                        print("Data:", data.production_count, data.target_production)
-                        # print("Calculated:", temp_count, temp_target)
+                    if target_production_count > 0:
+                        last_target_production = target_production_count  # Update last non-zero target production
 
-                    shift_timing_list[self.convert_to_12hr_format(start_time) + " - " + self.convert_to_12hr_format(end_time)] = [count, target_production_count]
+                    # Replace [0, 0] with [0, last_target_production]
+                    if count == 0 and target_production_count == 0:
+                        shift_timing_list[self.convert_to_12hr_format(start_time) + " - " + self.convert_to_12hr_format(end_time)] = [0, last_target_production]
+                    else:
+                        shift_timing_list[self.convert_to_12hr_format(start_time) + " - " + self.convert_to_12hr_format(end_time)] = [count, target_production_count]
 
                 shift_json["timing"] = shift_timing_list
 
