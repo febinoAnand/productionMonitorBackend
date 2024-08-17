@@ -84,8 +84,11 @@ class MachineGroupSerializer(serializers.ModelSerializer):
         fields = ['group_id', 'group_name', 'machine_list', 'machines']
     
     def validate_machine_list(self, value):
+        # Exclude the current group (if updating) from the validation check
+        group_id = self.instance.id if self.instance else None
+
         for machine in value:
-            if MachineGroup.objects.filter(machine_list=machine).exists():
+            if MachineGroup.objects.filter(machine_list=machine).exclude(id=group_id).exists():
                 raise serializers.ValidationError(f'The machine {machine.machine_name} is already assigned to another group.')
         return value
     
