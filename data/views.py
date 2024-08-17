@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from Userauth.models import UserDetail
 from django.db.models import Max
 from rest_framework.exceptions import NotFound
+from collections import defaultdict
 
 class RawGetMethod(views.APIView):
     schema = None
@@ -1295,12 +1296,16 @@ class MachineHourlyDataViewSet(viewsets.ViewSet):
 class IndividualViewSet(viewsets.ViewSet):
     def list(self, request):
         today = timezone.now().date()
+        seven_days_ago = today - timedelta(days=7)
+        
         machines = MachineDetails.objects.all()
         machine_data = MachineData.objects.all()
         production_data_today = ProductionData.objects.filter(date=today)
+        production_data_last_seven_days = ProductionData.objects.filter(date__range=[seven_days_ago, today])
 
         machine_data_by_machine = {}
         production_data_by_machine = {}
+        daily_production_totals = defaultdict(lambda: {'production_count': 0, 'target_production': 0})
 
         for data in machine_data:
             machine_id = str(data.machine_id)
@@ -1313,6 +1318,26 @@ class IndividualViewSet(viewsets.ViewSet):
             if machine_id not in production_data_by_machine:
                 production_data_by_machine[machine_id] = []
             production_data_by_machine[machine_id].append(production)
+
+        daily_totals = ProductionData.objects.filter(date__range=[seven_days_ago, today]) \
+            .values('date') \
+            .annotate(
+                total_production_count=Sum('production_count'),
+                total_target_production=Sum('target_production')
+            ) \
+            .order_by('date')
+
+        for total in daily_totals:
+            day_name = total['date'].strftime('%A')
+            daily_production_totals[day_name] = {
+                'production_count': total['total_production_count'],
+                'target_production': total['total_target_production']
+            }
+
+        today_totals = production_data_today.aggregate(
+            total_production_count=Sum('production_count'),
+            total_target_production=Sum('target_production')
+        )
 
         machine_details = []
         for machine in machines:
@@ -1332,17 +1357,13 @@ class IndividualViewSet(viewsets.ViewSet):
                 "create_date_time": machine.create_date_time,
                 "update_date_time": machine.update_date_time,
                 "machine_data": MachineDataSerializer(machine_data_for_machine, many=True).data,
-                "production_data": ProductionDataSerializer(production_data_for_machine, many=True).data
+                "production_data": ProductionDataSerializer(production_data_for_machine, many=True).data,
+                "last_seven_days_production_by_day": daily_production_totals
             })
-
-        production_summary = production_data_today.aggregate(
-            total_production_count=Sum('production_count'),
-            total_target_production=Sum('target_production')
-        )
 
         response_data = {
             'machine_details': machine_details,
-            'total_production': production_summary
+            'total_production': today_totals
         }
         
         return Response(response_data)
@@ -1354,12 +1375,35 @@ class IndividualViewSet(viewsets.ViewSet):
             raise NotFound("Machine not found")
 
         today = timezone.now().date()
+        seven_days_ago = today - timedelta(days=7)
         
         machine_data = MachineData.objects.filter(machine_id=pk)
         production_data_today = ProductionData.objects.filter(date=today, machine_id=machine.machine_id)
+        production_data_last_seven_days = ProductionData.objects.filter(date__range=[seven_days_ago, today], machine_id=machine.machine_id)
 
         machine_data_serialized = MachineDataSerializer(machine_data, many=True).data
         production_data_serialized = ProductionDataSerializer(production_data_today, many=True).data
+
+        daily_production_totals = defaultdict(lambda: {'production_count': 0, 'target_production': 0})
+        daily_totals = ProductionData.objects.filter(date__range=[seven_days_ago, today], machine_id=machine.machine_id) \
+            .values('date') \
+            .annotate(
+                total_production_count=Sum('production_count'),
+                total_target_production=Sum('target_production')
+            ) \
+            .order_by('date')
+
+        for total in daily_totals:
+            day_name = total['date'].strftime('%A')
+            daily_production_totals[day_name] = {
+                'production_count': total['total_production_count'],
+                'target_production': total['total_target_production']
+            }
+
+        today_totals = production_data_today.aggregate(
+            total_production_count=Sum('production_count'),
+            total_target_production=Sum('target_production')
+        )
 
         machine_details = {
             "id": machine.id,
@@ -1373,17 +1417,13 @@ class IndividualViewSet(viewsets.ViewSet):
             "create_date_time": machine.create_date_time,
             "update_date_time": machine.update_date_time,
             "machine_data": machine_data_serialized,
-            "production_data": production_data_serialized
+            "production_data": production_data_serialized,
+            "last_seven_days_production_by_day": daily_production_totals
         }
-
-        production_summary = production_data_today.aggregate(
-            total_production_count=Sum('production_count'),
-            total_target_production=Sum('target_production')
-        )
 
         response_data = {
             'machine_details': machine_details,
-            'total_production': production_summary
+            'total_production': today_totals
         }
         
         return Response(response_data)
