@@ -1520,3 +1520,61 @@ class ShiftDataViewSet(viewsets.ViewSet):
         }
 
         return Response(response_data)
+    
+class AchievementsViewSet(viewsets.ViewSet):
+    def list(self, request):
+
+        end_date = datetime.today().date()
+        start_date = end_date - timedelta(days=9)
+        print("Date Range:", start_date, "to", end_date)
+
+        machine_groups = MachineGroup.objects.all()
+        output_json = {
+            "start_date": start_date.strftime('%Y-%m-%d'),
+            "end_date": end_date.strftime('%Y-%m-%d'),
+            "achievements": []
+        }
+
+        for group in machine_groups:
+            group_json = {
+                "group_name": group.group_name,
+                "dates": []
+            }
+
+            for single_date in [start_date + timedelta(days=x) for x in range((end_date - start_date).days + 1)]:
+                date_json = {
+                    "date": single_date.strftime('%Y-%m-%d'),
+                    "shifts": []
+                }
+
+                total_shifts = ShiftTiming.objects.all()
+
+                for shift in total_shifts:
+                    if shift.shift_number == 0:
+                        continue
+
+                    shift_json = {
+                        "shift_no": shift.shift_number,
+                        "shift_name": shift.shift_name,
+                        "total_production_count": 0
+                    }
+
+                   
+                    all_production_data = ProductionData.objects.filter(
+                        production_date=single_date,
+                        shift_number=shift.shift_number,
+                        machine_id__in=[machine.machine_id for machine in group.machine_list.all()]
+                    )
+
+                    total_production_count = all_production_data.aggregate(total_count=Sum('production_count'))['total_count'] or 0
+
+                    shift_json["total_production_count"] = total_production_count
+                    date_json["shifts"].append(shift_json)
+
+                group_json["dates"].append(date_json)
+
+            output_json["achievements"].append(group_json)
+
+        print("Output JSON", output_json)
+        return Response(output_json, status=status.HTTP_200_OK)
+
