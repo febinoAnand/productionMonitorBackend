@@ -1,13 +1,14 @@
 import json
-import redis
+import asyncio
+import random
+from datetime import datetime
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 class DeviceDataConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         print(f'WebSocket connected: {self.channel_name}')
-
         await self.accept()
-
+        self.send_random_data_task = asyncio.create_task(self.send_random_data())
         default_data = {
             'date': '2024-08-21',
             'time': '00:00:00',
@@ -25,6 +26,7 @@ class DeviceDataConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         print(f'WebSocket disconnected: {self.channel_name}, close code: {close_code}')
+        self.send_random_data_task.cancel()
 
     async def receive(self, text_data):
         try:
@@ -41,28 +43,31 @@ class DeviceDataConsumer(AsyncWebsocketConsumer):
             print(f'Error parsing WebSocket message: {e}')
 
     async def handle_device_data(self, data):
-        redis_client = redis.StrictRedis(host='localhost', port=6379, db=0)
-        sorted_set_key = 'device_data'
-
-        timestamp = data.get('timestamp', 0)
-        device_id = data.get('device_id', 'default_device')
-        redis_client.zadd(sorted_set_key, {json.dumps(data): timestamp})
-
-        min_element = redis_client.zrange(sorted_set_key, 0, 0, withscores=True)
-        if min_element:
-            min_data, _ = min_element[0]
-            min_data = json.loads(min_data)
-
-            await self.send(text_data=json.dumps({
-                'type': 'send_device_data',
-                'data': min_data
-            }))
-
-            redis_client.zrem(sorted_set_key, json.dumps(min_data))
-
-    async def send_device_data(self, event):
-        data = event['data']
         await self.send(text_data=json.dumps({
             'type': 'send_device_data',
             'data': data
         }))
+
+    async def send_random_data(self):
+        while True:
+            random_value = random.randint(1, 100)
+            random_device_id = random.randint(1, 1000)
+            random_date = datetime.now().strftime('%Y-%m-%d')
+            random_time = datetime.now().strftime('%H:%M:%S')
+            random_message = f'Random data message {random.randint(1, 100)}'
+
+            random_data = {
+                'date': random_date,
+                'time': random_time,
+                'data': {
+                    'device_id': str(random_device_id),
+                    'value': str(random_value)
+                },
+                'message': random_message
+            }
+
+            await self.send(text_data=json.dumps({
+                'type': 'send_device_data',
+                'data': random_data
+            }))
+            await asyncio.sleep(5)
