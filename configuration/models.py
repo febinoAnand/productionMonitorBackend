@@ -60,3 +60,14 @@ class HttpsSettings(models.Model):
     class Meta:
         verbose_name = "Https"
         verbose_name_plural = "Https"
+
+class Setting(models.Model):
+    enable_printing = models.BooleanField(default=False)
+
+    def __str__(self):
+        return "Printing Enabled" if self.enable_printing else "Printing Disabled"
+
+    def save(self, *args, **kwargs):
+        if not self.pk and Setting.objects.exists():
+            raise ValueError("Only one instance of Setting is allowed.")
+        super().save(*args, **kwargs)

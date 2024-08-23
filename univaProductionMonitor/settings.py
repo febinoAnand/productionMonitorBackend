@@ -62,7 +62,6 @@ INSTALLED_APPS = [
     'Userauth',
     'rest_framework.authtoken',
     'mqttConnection',
-    'channels',
    
 
     # 'django_extensions',
@@ -108,13 +107,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'univaProductionMonitor.wsgi.application'
-ASGI_APPLICATION = 'univaProductionMonitor.asgi.application'
-
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
-    },
-}
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
@@ -126,7 +118,7 @@ DATABASES = {
     }
 }
 
-
+DEBUG_PRINT = True
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 

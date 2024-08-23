@@ -1,7 +1,8 @@
 from rest_framework import viewsets
-from .serializers import MQTTSerializer, UARTSerializer, HttpsSettingsSerializer
-from .models import MqttSettings, UART, HttpsSettings
+from .serializers import MQTTSerializer, UARTSerializer, HttpsSettingsSerializer, SettingSerializer
+from .models import MqttSettings, UART, HttpsSettings, Setting
 from django.shortcuts import render
+from rest_framework.response import Response
 
 # Create your views here.
 class MQTTViewSet(viewsets.ModelViewSet):
@@ -19,3 +20,7 @@ class UARTViewSet(viewsets.ModelViewSet):
 class HttpsSettingsViewSet(viewsets.ModelViewSet):
     queryset = HttpsSettings.objects.all()
     serializer_class = HttpsSettingsSerializer
+
+class SettingViewSet(viewsets.ViewSet):
+    serializer_class = SettingSerializer
+    queryset = Setting.objects.all()
