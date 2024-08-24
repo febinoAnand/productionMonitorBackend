@@ -56,8 +56,8 @@ class MachineDataAdmin(admin.ModelAdmin):
 
 class ProductionDataAdmin(admin.ModelAdmin):
     list_display = ( 'date', 'time','shift_number', 'machine_id', 'production_count', 'target_production','production_date')
-    search_fields = ('shift_name', 'machine_id__machine_id')
-    list_filter = ('production_date', 'shift_number', 'machine_id', 'machine_name')
+    search_fields = ('shift_name', 'machine_id')
+    list_filter = ('date','time','shift_number')
 
 admin.site.register(LogData, LogDataAdmin)
 admin.site.register(DeviceData, DeviceDataAdmin)
