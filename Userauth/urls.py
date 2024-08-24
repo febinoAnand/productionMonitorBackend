@@ -27,6 +27,9 @@ urlpatterns = [
     path('weblogout/', WebLogoutView.as_view(), name='weblogout'),
     path('change-password/', AdminChangePasswordView.as_view(), name='admin-change-password'),
     path('check-token/', CheckAuthToken.as_view(), name='check-token'),
+    path('demo-check-user-activity/', DemoUserActivityView.as_view(), name='check-user-activity'),
+    path('demo-update-user-status/', DemoUpdateUserStatusView.as_view(), name='update-user-status'),
+    path('demo-check-generate-otp/', DemoGenerateOtpView.as_view(), name='generate-otp'),
 ]
 
 
