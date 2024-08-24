@@ -13,6 +13,8 @@ from datetime import datetime, timedelta
 from Userauth.models import UserDetail
 from django.db.models import Max
 from rest_framework.exceptions import NotFound
+from collections import defaultdict
+from configuration.models import Setting
 
 class RawGetMethod(views.APIView):
     schema = None
@@ -907,6 +909,9 @@ class ProductionViewSet(viewsets.ViewSet):
     http_method_names = ['post']
 
     def create(self, request):
+        setting = Setting.objects.first()
+        enable_printing = setting.enable_printing if setting else False
+
         select_date = request.data.get('date')
         if not select_date:
             return Response({"error": "Date is required. Please provide a date in YYYY-MM-DD format."}, status=status.HTTP_400_BAD_REQUEST)
@@ -916,7 +921,8 @@ class ProductionViewSet(viewsets.ViewSet):
         except ValueError:
             return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
 
-        print("Selected Date:", select_date)
+        if enable_printing:
+            print("Selected Date:", select_date)
 
         machine_groups = MachineGroup.objects.all()
         output_json = {
@@ -937,7 +943,8 @@ class ProductionViewSet(viewsets.ViewSet):
                 }
 
                 all_production_data = ProductionData.objects.filter(production_date=select_date, machine_id=machine.machine_id).order_by('timestamp')
-                print("All Production Data for Machine ID", machine.machine_id, ":", all_production_data)
+                if enable_printing:
+                    print("All Production Data for Machine ID", machine.machine_id, ":", all_production_data)
 
                 total_shifts = ShiftTiming.objects.all()
 
@@ -955,7 +962,8 @@ class ProductionViewSet(viewsets.ViewSet):
                     }
 
                     current_shift_production = all_production_data.filter(shift_number=shift.shift_number)
-                    print("Current Shift Production for Shift Number", shift.shift_number, ":", current_shift_production)
+                    if enable_printing:
+                        print("Current Shift Production for Shift Number", shift.shift_number, ":", current_shift_production)
 
                     if current_shift_production.exists():
                         first_production_data = current_shift_production.first()
@@ -964,14 +972,14 @@ class ProductionViewSet(viewsets.ViewSet):
                         shift_json["shift_start_time"] = f"{first_production_data.date} {first_production_data.time}"
                         shift_json["shift_end_time"] = f"{last_production_data.date} {last_production_data.time}"
 
-                        # Generate hourly intervals within the shift
                         split_hours = self.generate_hourly_intervals_with_dates(
                             str(first_production_data.date),
                             str(last_production_data.date),
                             str(first_production_data.time),
                             str(last_production_data.time)
                         )
-                        print("Splitted hours:", split_hours)
+                        if enable_printing:
+                            print("Splitted hours:", split_hours)
 
                         last_inc_count = 0
                         shift_timing_list = {}
@@ -985,7 +993,8 @@ class ProductionViewSet(viewsets.ViewSet):
                             end_date = start_end_datetime[1][0]
                             end_time = start_end_datetime[1][1]
 
-                            print(start_date, start_time, end_date, end_time)
+                            if enable_printing:
+                                print(start_date, start_time, end_date, end_time)
 
                             sub_data = current_shift_production.filter(
                                 date__gte=start_date, date__lte=end_date,
@@ -1005,24 +1014,29 @@ class ProductionViewSet(viewsets.ViewSet):
                             except:
                                 pass
 
-                            print(" -> LastIncCount", last_inc_count)
+                            if enable_printing:
+                                print(" -> LastIncCount", last_inc_count)
 
                             for data in sub_data:
-                                print(" -> Data Entry:", data.date, data.time, data.shift_number, data.production_count, data.timestamp)
+                                if enable_printing:
+                                    print(" -> Data Entry:", data.date, data.time, data.shift_number, data.production_count, data.timestamp)
                                 temp = data.production_count - last_inc_count
                                 count += temp if temp >= 0 else data.production_count
                                 last_inc_count = data.production_count
 
-                            print(" -> Total =", count)
+                            if enable_printing:
+                                print(" -> Total =", count)
                             shift_timing_list[self.convert_to_12hr_format(start_time) + " - " + self.convert_to_12hr_format(end_time)] = count
-                            print()
+                            if enable_printing:
+                                print()
                             
                             shift_json["total_shift_production_count"] += count
 
                         shift_json["timing"] = shift_timing_list
-                        print()
+                        if enable_printing:
+                            print()
                         
-                        print()
+                            print()
 
                     machine_json["shifts"].append(shift_json)
 
@@ -1030,7 +1044,8 @@ class ProductionViewSet(viewsets.ViewSet):
 
             output_json["machine_groups"].append(group_json)
 
-        print("Output JSON", output_json)
+        if enable_printing:
+            print("Output JSON", output_json)
         return Response(output_json, status=status.HTTP_200_OK)
 
 
@@ -1195,12 +1210,16 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
     def convert_to_12hr_format(self, time_24hr_str):
         time_24hr = datetime.strptime(time_24hr_str, '%H:%M:%S')
         time_12hr_str = time_24hr.strftime('%I:%M %p')
-        return time_12hr_str
+        return time_12hr_str 
+
 
 
 
 class HourlyShiftReportViewSet(viewsets.ViewSet):
     def create(self, request):
+        setting = Setting.objects.first()
+        enable_printing = setting.enable_printing if setting else False
+
         select_date = request.data.get('date')
         machine_id = request.data.get('machine_id')
 
@@ -1284,8 +1303,9 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
                             timestamp__lt=sub_data_first.timestamp
                         ).last()
                         
+                        if enable_printing:
                         # Debugging: Check first_before_data values
-                        print("First before data:", first_before_data.production_count, first_before_data.target_production)
+                          print("First before data:", first_before_data.production_count, first_before_data.target_production)
                         
                         last_inc_count = first_before_data.production_count
                         # last_inc_target = first_before_data.target_production
@@ -1294,20 +1314,18 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
 
                     for data in sub_data:
                         temp_count = data.production_count - last_inc_count
-                        
-
                         count += temp_count if temp_count >= 0 else data.production_count
-                     
-
                         last_inc_count = data.production_count
-
                         target_production_count += data.target_production
 
-                        # Debugging: Check data values
-                        print("Data:", data.production_count, data.target_production)
-                        # print("Calculated:", temp_count, temp_target)
+                    if target_production_count > 0:
+                        last_target_production = target_production_count  # Update last non-zero target production
 
-                    shift_timing_list[self.convert_to_12hr_format(start_time) + " - " + self.convert_to_12hr_format(end_time)] = [count, target_production_count]
+                    # Replace [0, 0] with [0, last_target_production]
+                    if count == 0 and target_production_count == 0:
+                        shift_timing_list[self.convert_to_12hr_format(start_time) + " - " + self.convert_to_12hr_format(end_time)] = [0, last_target_production]
+                    else:
+                        shift_timing_list[self.convert_to_12hr_format(start_time) + " - " + self.convert_to_12hr_format(end_time)] = [count, target_production_count]
 
                 shift_json["timing"] = shift_timing_list
 
@@ -1349,60 +1367,75 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
 
 class MachineHourlyDataViewSet(viewsets.ViewSet):
     def create(self, request):
-        print("Received request with data:", request.data)
+        setting = Setting.objects.first()
+        enable_printing = setting.enable_printing if setting else False
+
+        if enable_printing:
+              print("Received request with data:", request.data)
         
         machine_id = request.data.get('machine_id')
         date = request.data.get('date')
         
         if not machine_id or not date:
-            print("machine_id and date are required parameters.")
+            if enable_printing:
+                print("machine_id and date are required parameters.")
+
             return Response({"message": "machine_id and date are required parameters."}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
             date = parse_date(date)
             if date is None:
-                print("Invalid date format.")
+                if enable_printing:
+                  print("Invalid date format.")
                 raise ValueError("Invalid date format.")
             
             shift_reports = {}
             shifts = ShiftTiming.objects.all()
-            print("Retrieved shifts:", shifts)
+            if enable_printing:
+               print("Retrieved shifts:", shifts)
 
             for shift in shifts:
                 shift_data = ProductionData.objects.filter(date=date, machine_id=machine_id, shift_number=shift.shift_number).order_by('time')
-                print("Shift", shift.shift_number, "data:", shift_data)
+                if enable_printing:
+                   print("Shift", shift.shift_number, "data:", shift_data)
                 
                 if shift_data.exists():
                     first_time = shift_data.first().time
                     last_time = shift_data.last().time
-                    print("First time:", first_time, "Last time:", last_time)
+                    if enable_printing:
+                      print("First time:", first_time, "Last time:", last_time)
 
                     # Generate hourly intervals between first and last data times
                     hourly_intervals = []
                     current_time = datetime.combine(date, first_time)
                     end_time = datetime.combine(date, last_time)
-                    print("Generating hourly intervals from", current_time, "to", end_time)
+                    if enable_printing:
+                       print("Generating hourly intervals from", current_time, "to", end_time)
 
                     while current_time < end_time:
                         next_time = current_time + timedelta(hours=1)
                         hourly_intervals.append((current_time.time(), next_time.time()))
                         current_time = next_time
-                    
-                    print("Hourly intervals:", hourly_intervals)
+
+                    if enable_printing:
+                       print("Hourly intervals:", hourly_intervals)
                     hourly_data = {}
 
                     for start_time, end_time in hourly_intervals:
                         interval_data = shift_data.filter(time__gte=start_time, time__lt=end_time)
-                        print("Interval", start_time, "to", end_time, "data:", interval_data)
+                        if enable_printing:
+                           print("Interval", start_time, "to", end_time, "data:", interval_data)
                         
                         if interval_data.exists():
                             first_data = interval_data.first().production_count
                             last_data = interval_data.last().production_count
                             count = last_data - first_data
-                            print("First data:", first_data, "Last data:", last_data, "Count:", count)
+                            if enable_printing:
+                               print("First data:", first_data, "Last data:", last_data, "Count:", count)
                         else:
                             count = 0
-                            print("No data found for interval", start_time, "to", end_time)
+                            if enable_printing:
+                               print("No data found for interval", start_time, "to", end_time)
                         
                         hourly_data[f"{start_time.strftime('%H:%M')}-{end_time.strftime('%H:%M')}"] = count
 
@@ -1412,7 +1445,8 @@ class MachineHourlyDataViewSet(viewsets.ViewSet):
                         "last_data_time": last_time,
                         "hourly_data": hourly_data
                     }
-                    print("Shift", shift.shift_number, "report:", shift_reports[shift.shift_number])
+                    if enable_printing:
+                      print("Shift", shift.shift_number, "report:", shift_reports[shift.shift_number])
                 else:
                     shift_reports[shift.shift_number] = {
                         "date": date,
@@ -1420,23 +1454,31 @@ class MachineHourlyDataViewSet(viewsets.ViewSet):
                         "last_data_time": None,
                         "hourly_data": {}
                     }
-                    print("No data found for shift", shift.shift_number)
+                    if enable_printing:
+                       print("No data found for shift", shift.shift_number)
                 
             return Response(shift_reports, status=status.HTTP_200_OK)
         except Exception as e:
-            print("An error occurred:", str(e))
+            if enable_printing:
+               print("An error occurred:", str(e))
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class IndividualViewSet(viewsets.ViewSet):
     def list(self, request):
+        setting = Setting.objects.first()
+        enable_printing = setting.enable_printing if setting else False
         today = timezone.now().date()
+        seven_days_ago = today - timedelta(days=7)
+        
         machines = MachineDetails.objects.all()
         machine_data = MachineData.objects.all()
         production_data_today = ProductionData.objects.filter(date=today)
+        production_data_last_seven_days = ProductionData.objects.filter(date__range=[seven_days_ago, today])
 
         machine_data_by_machine = {}
         production_data_by_machine = {}
+        daily_production_totals = defaultdict(lambda: {'production_count': 0, 'target_production': 0})
 
         for data in machine_data:
             machine_id = str(data.machine_id)
@@ -1449,6 +1491,26 @@ class IndividualViewSet(viewsets.ViewSet):
             if machine_id not in production_data_by_machine:
                 production_data_by_machine[machine_id] = []
             production_data_by_machine[machine_id].append(production)
+
+        daily_totals = ProductionData.objects.filter(date__range=[seven_days_ago, today]) \
+            .values('date') \
+            .annotate(
+                total_production_count=Sum('production_count'),
+                total_target_production=Sum('target_production')
+            ) \
+            .order_by('date')
+
+        for total in daily_totals:
+            day_name = total['date'].strftime('%A')
+            daily_production_totals[day_name] = {
+                'production_count': total['total_production_count'],
+                'target_production': total['total_target_production']
+            }
+
+        today_totals = production_data_today.aggregate(
+            total_production_count=Sum('production_count'),
+            total_target_production=Sum('target_production')
+        )
 
         machine_details = []
         for machine in machines:
@@ -1468,17 +1530,13 @@ class IndividualViewSet(viewsets.ViewSet):
                 "create_date_time": machine.create_date_time,
                 "update_date_time": machine.update_date_time,
                 "machine_data": MachineDataSerializer(machine_data_for_machine, many=True).data,
-                "production_data": ProductionDataSerializer(production_data_for_machine, many=True).data
+                "production_data": ProductionDataSerializer(production_data_for_machine, many=True).data,
+                "last_seven_days_production_by_day": daily_production_totals
             })
-
-        production_summary = production_data_today.aggregate(
-            total_production_count=Sum('production_count'),
-            total_target_production=Sum('target_production')
-        )
 
         response_data = {
             'machine_details': machine_details,
-            'total_production': production_summary
+            'total_production': today_totals
         }
         
         return Response(response_data)
@@ -1490,12 +1548,35 @@ class IndividualViewSet(viewsets.ViewSet):
             raise NotFound("Machine not found")
 
         today = timezone.now().date()
+        seven_days_ago = today - timedelta(days=7)
         
         machine_data = MachineData.objects.filter(machine_id=pk)
         production_data_today = ProductionData.objects.filter(date=today, machine_id=machine.machine_id)
+        production_data_last_seven_days = ProductionData.objects.filter(date__range=[seven_days_ago, today], machine_id=machine.machine_id)
 
         machine_data_serialized = MachineDataSerializer(machine_data, many=True).data
         production_data_serialized = ProductionDataSerializer(production_data_today, many=True).data
+
+        daily_production_totals = defaultdict(lambda: {'production_count': 0, 'target_production': 0})
+        daily_totals = ProductionData.objects.filter(date__range=[seven_days_ago, today], machine_id=machine.machine_id) \
+            .values('date') \
+            .annotate(
+                total_production_count=Sum('production_count'),
+                total_target_production=Sum('target_production')
+            ) \
+            .order_by('date')
+
+        for total in daily_totals:
+            day_name = total['date'].strftime('%A')
+            daily_production_totals[day_name] = {
+                'production_count': total['total_production_count'],
+                'target_production': total['total_target_production']
+            }
+
+        today_totals = production_data_today.aggregate(
+            total_production_count=Sum('production_count'),
+            total_target_production=Sum('target_production')
+        )
 
         machine_details = {
             "id": machine.id,
@@ -1509,23 +1590,21 @@ class IndividualViewSet(viewsets.ViewSet):
             "create_date_time": machine.create_date_time,
             "update_date_time": machine.update_date_time,
             "machine_data": machine_data_serialized,
-            "production_data": production_data_serialized
+            "production_data": production_data_serialized,
+            "last_seven_days_production_by_day": daily_production_totals
         }
-
-        production_summary = production_data_today.aggregate(
-            total_production_count=Sum('production_count'),
-            total_target_production=Sum('target_production')
-        )
 
         response_data = {
             'machine_details': machine_details,
-            'total_production': production_summary
+            'total_production': today_totals
         }
         
         return Response(response_data)
     
 class ShiftDataViewSet(viewsets.ViewSet):
     def list(self, request):
+        setting = Setting.objects.first()
+        enable_printing = setting.enable_printing if setting else False
         today = timezone.now().date()
         production_data_today = ProductionData.objects.filter(date=today).order_by('timestamp')
 
@@ -1616,3 +1695,64 @@ class ShiftDataViewSet(viewsets.ViewSet):
         }
 
         return Response(response_data)
+    
+class AchievementsViewSet(viewsets.ViewSet):
+    def list(self, request):
+        setting = Setting.objects.first()
+        enable_printing = setting.enable_printing if setting else False
+        end_date = datetime.today().date()
+        start_date = end_date - timedelta(days=9)
+
+        if enable_printing:
+           print("Date Range:", start_date, "to", end_date)
+
+        machine_groups = MachineGroup.objects.all()
+        output_json = {
+            "start_date": start_date.strftime('%Y-%m-%d'),
+            "end_date": end_date.strftime('%Y-%m-%d'),
+            "achievements": []
+        }
+
+        for group in machine_groups:
+            group_json = {
+                "group_name": group.group_name,
+                "dates": []
+            }
+
+            for single_date in [start_date + timedelta(days=x) for x in range((end_date - start_date).days + 1)]:
+                date_json = {
+                    "date": single_date.strftime('%Y-%m-%d'),
+                    "shifts": []
+                }
+
+                total_shifts = ShiftTiming.objects.all()
+
+                for shift in total_shifts:
+                    if shift.shift_number == 0:
+                        continue
+
+                    shift_json = {
+                        "shift_no": shift.shift_number,
+                        "shift_name": shift.shift_name,
+                        "total_production_count": 0
+                    }
+
+                   
+                    all_production_data = ProductionData.objects.filter(
+                        production_date=single_date,
+                        shift_number=shift.shift_number,
+                        machine_id__in=[machine.machine_id for machine in group.machine_list.all()]
+                    )
+
+                    total_production_count = all_production_data.aggregate(total_count=Sum('production_count'))['total_count'] or 0
+
+                    shift_json["total_production_count"] = total_production_count
+                    date_json["shifts"].append(shift_json)
+
+                group_json["dates"].append(date_json)
+
+            output_json["achievements"].append(group_json)
+        if enable_printing:
+           print("Output JSON", output_json)
+        return Response(output_json, status=status.HTTP_200_OK)
+

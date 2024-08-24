@@ -8,76 +8,99 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
 import time
-
+from configuration.models import Setting
 
 subscribed_topics = set()
 
 
 def on_connect(client, userdata, flags, rc):
+    setting = Setting.objects.first()
+    enable_printing = setting.enable_printing if setting else False
+
     if rc == 0:
-        print('Connected successfully')
+        if enable_printing:
+          print('Connected successfully')
         global subscribed_topics
 
         # Fetch the last MqttSettings instance
         mqtt_settings = MqttSettings.objects.last()
         if not mqtt_settings:
-            print('MqttSettings instance does not exist.')
+            if enable_printing:
+              print('MqttSettings instance does not exist.')
             return
 
         sub_topic = mqtt_settings.sub_topic
         if sub_topic and sub_topic not in subscribed_topics:
             client.subscribe(sub_topic)
             subscribed_topics.add(sub_topic)
-            print(f'Subscribed to {sub_topic}')
-
-        print("All topics are successfully subscribed!!")
+            if enable_printing:
+              print(f'Subscribed to {sub_topic}')
+        if enable_printing:
+          print("All topics are successfully subscribed!!")
     else:
-        print(f'Bad connection. Code: {rc}')
+        if enable_printing:
+          print(f'Bad connection. Code: {rc}')
 
 
 
 @receiver(post_save, sender=DeviceDetails)
 def handle_device_details_save(sender, instance, **kwargs):
+
     if instance.sub_topic: 
       subscribe_to_topic(instance.sub_topic)
 
 
 @receiver(post_save, sender=MqttSettings)
 def subscribe_to_topic(sender, instance, **kwargs):
+    setting = Setting.objects.first()
+    enable_printing = setting.enable_printing if setting else False
     global mqtt_client
 
     if instance.sub_topic:
         mqtt_client.subscribe(instance.sub_topic)
-        print(f'Subscribed to {instance.sub_topic}')
+        if enable_printing:
+          print(f'Subscribed to {instance.sub_topic}')
 
 def subscribe_to_topic(sub_topic):
+    setting = Setting.objects.first()
+    enable_printing = setting.enable_printing if setting else False
+
     if sub_topic not in subscribed_topics:
         mqtt_client.subscribe(sub_topic)
         subscribed_topics.add(sub_topic)
-        print(f'Subscribed to {sub_topic}')
+        if enable_printing:
+          print(f'Subscribed to {sub_topic}')
     else:
-        print(f'Topic {sub_topic} is already subscribed.')
+        if enable_printing: 
+           print(f'Topic {sub_topic} is already subscribed.')
         
 
 def publish_response(mqtt_client, device_token, response, is_error=False):
+    setting = Setting.objects.first()
+    enable_printing = setting.enable_printing if setting else False
     try:
         # Fetch the first MqttSettings instance
         mqtt_settings = MqttSettings.objects.first()
         if not mqtt_settings:
-            print("MqttSettings instance does not exist. Cannot publish response.")
+            if enable_printing:
+              print("MqttSettings instance does not exist. Cannot publish response.")
             return
 
         publish_topic = mqtt_settings.pub_topic
 
         # Publish the response to the topic
         result = mqtt_client.publish(publish_topic, json.dumps(response))
-        print(f"Response Published to {publish_topic}: {response} with result {result}")
+        if enable_printing:
+          print(f"Response Published to {publish_topic}: {response} with result {result}")
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        if enable_printing:
+          print(f"An error occurred: {e}")
 
 
 def log_message(currentMessage, topic, protocol='MQTT'):
+    setting = Setting.objects.first()
+    enable_printing = setting.enable_printing if setting else False
     # Extract current date and time
     current_date = datetime.date.today()
     current_time = datetime.datetime.now().time()
@@ -100,12 +123,14 @@ def log_message(currentMessage, topic, protocol='MQTT'):
         data_id=data_id
     )
     log_data.save()
-    print('Saved log data to database')
+    if enable_printing:
+       print('Saved log data to database')
 
     return message_data, log_data
 
 
 def on_message(mqtt_client, userdata, msg):
+
     print(f'Received message on topic: {msg.topic} with payload: {msg.payload}')
     currentMessage = msg.payload.decode()
 
@@ -143,12 +168,17 @@ def on_message(mqtt_client, userdata, msg):
 
 
 def handle_command_message(mqtt_client, msg, message_data, log_data):
+    setting = Setting.objects.first()
+    enable_printing = setting.enable_printing if setting else False
+
+
     current_timestamp = int(datetime.datetime.now().timestamp())
     device_token = message_data['device_token']
 
     try:
         device = DeviceDetails.objects.get(device_token=device_token)
-        print("device",device)
+        if enable_printing:
+           print("device",device)
         device_data = DeviceData(
             date=datetime.date.today(),
             time=datetime.datetime.now().time(),
@@ -159,7 +189,8 @@ def handle_command_message(mqtt_client, msg, message_data, log_data):
             log_data_id=log_data
         )
         device_data.save()
-        print(f'Saved device data to database: {device_data}')
+        if enable_printing:
+           print(f'Saved device data to database: {device_data}')
 
         response = {
             "status": "OK",
@@ -174,10 +205,14 @@ def handle_command_message(mqtt_client, msg, message_data, log_data):
             "message": "Device not found with given token"
         }
         publish_response(mqtt_client, device_token, response, is_error=True)
-        print('Device token mismatch')
+        if enable_printing:
+          print('Device token mismatch')
 
 
 def handle_machine_data(mqtt_client, msg, message_data, log_data):
+    setting = Setting.objects.first()
+    enable_printing = setting.enable_printing if setting else False
+
     timestamp = message_data['timestamp']
     # dt = datetime.datetime.utcfromtimestamp(timestamp)
     dt = datetime.datetime.fromtimestamp(timestamp)
@@ -189,7 +224,8 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
     
     try:
         device = DeviceDetails.objects.get(device_token=device_token)
-        print("device",device)
+        if enable_printing:
+           print("device",device)
     except DeviceDetails.DoesNotExist:
         errors.append({
             "status": "DEVICE NOT FOUND",
@@ -197,7 +233,8 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
             "device_token": device_token,
             "timestamp": timestamp
         })
-        print('Device token mismatch')
+        if enable_printing:
+           print('Device token mismatch')
         publish_response(mqtt_client, device_token, errors, is_error=True)
         # Return False as the device was not found
         return False
@@ -217,7 +254,8 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
                 "device_token": device_token,
                 "timestamp": timestamp
             })
-            print('Received timestamp is less than current timestamp: firstTimestamp =', oldTimestamp, '- Received =', timestamp)
+            if enable_printing:
+               print('Received timestamp is less than current timestamp: firstTimestamp =', oldTimestamp, '- Received =', timestamp)
             publish_response(mqtt_client, device_token, errors, is_error=True)
             return False
     else:
@@ -230,7 +268,8 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
         # print('No previous timestamp found for device_token:', device_token)
         # publish_response(mqtt_client, device_token, errors, is_error=True)
         # return False
-        print('No previous data found. Saving this as the first data entry for device_token:', device_token)
+        if enable_printing:
+           print('No previous data found. Saving this as the first data entry for device_token:', device_token)
     
     currentTimestamp = time.time()
     if currentTimestamp < timestamp:
@@ -240,7 +279,8 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
             "device_token": device_token,
             "timestamp": timestamp
         })
-        print('Received timestamp is greater than current timestamp current =',currentTimestamp,' - Received',timestamp)
+        if enable_printing:
+           print('Received timestamp is greater than current timestamp current =',currentTimestamp,' - Received',timestamp)
         publish_response(mqtt_client, device_token, errors, is_error=True)
         return False
 
@@ -251,7 +291,8 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
             "device_token": device_token,
             "timestamp": timestamp
         })
-        print('Duplicate timestamp found, data not saved.')
+        if enable_printing:
+           print('Duplicate timestamp found, data not saved.')
         publish_response(mqtt_client, device_token, errors, is_error=True)
         return False
 
@@ -265,7 +306,8 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
         try:
             machine = MachineDetails.objects.get(machine_id=machine_id)
         except MachineDetails.DoesNotExist:
-            print(f'Machine ID mismatch for {machine_id}')
+            if enable_printing:
+              print(f'Machine ID mismatch for {machine_id}')
             continue  # Skip this machine_id and move to the next one
 
         try:
@@ -279,7 +321,8 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
                 timestamp=str(timestamp)
             )
             machine_data.save()
-            print(f'Saved machine data to database: {machine_data}')
+            if enable_printing:
+              print(f'Saved machine data to database: {machine_data}')
 
         except Exception as e:
             errors.append({
@@ -288,7 +331,8 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
                 "device_token": device_token,
                 "timestamp": timestamp,
             })
-            print(f'Error saving machine data to database: {e}')
+            if enable_printing:
+              print(f'Error saving machine data to database: {e}')
             continue  # Continue with the next machine data
 
     device_data = DeviceData(
@@ -302,7 +346,8 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
         log_data_id=log_data
     )
     device_data.save()
-    print(f'Saved device data to database: {device_data}')
+    if enable_printing:
+      print(f'Saved device data to database: {device_data}')
     
     if errors:
         for error in errors:
@@ -312,6 +357,9 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
     return True
 
 def handle_production_data(mqtt_client, message_data, log_data):
+    setting = Setting.objects.first()
+    enable_printing = setting.enable_printing if setting else False
+
     end_shift_time_str = settings.END_SHIFT_TIME
     end_shift_number = settings.END_SHIFT_NUMBER
 
@@ -337,7 +385,8 @@ def handle_production_data(mqtt_client, message_data, log_data):
         machine = MachineDetails.objects.filter(machine_id=machine_id).first()
         if not machine:
             # errors.append(f"No machine found for machine_id: {machine_id}")
-            print(f"No machine found for machine_id: {machine_id}")
+            if enable_printing:
+              print(f"No machine found for machine_id: {machine_id}")
             continue
 
         last_production_data = ProductionData.objects.filter(machine_id=machine.machine_id).order_by('-date', '-time').first()
@@ -380,7 +429,8 @@ def handle_production_data(mqtt_client, message_data, log_data):
                 timestamp=timestamp
             )
             production_data.save()
-            print(f'Saved production data to database: {production_data}')
+            if enable_printing:
+              print(f'Saved production data to database: {production_data}')
 
         except Exception as e:
             errors.append({
@@ -389,7 +439,8 @@ def handle_production_data(mqtt_client, message_data, log_data):
                 "device_token": device_token,
                 "timestamp": timestamp,
             })
-            print(f'Error saving production data to database: {e}')
+            if enable_printing:
+              print(f'Error saving production data to database: {e}')
             continue
 
     # if errors:
@@ -425,12 +476,16 @@ RECONNECT_DELAY = 5  # Delay between reconnection attempts in seconds
 
 
 def get_mqtt_settings():
+    setting = Setting.objects.first()
+    enable_printing = setting.enable_printing if setting else False
+
     try:
         mqtt_settings = MqttSettings.objects.first()
         return mqtt_settings.__dict__
 
     except MqttSettings.DoesNotExist:
-        print("Error getting mqtt")
+        if enable_printing:
+           print("Error getting mqtt")
         default_settings = {}
         default_settings["username"] = ""
         default_settings["password"] = ""
@@ -442,16 +497,23 @@ def get_mqtt_settings():
         # raise ValueError("MQTT settings not found in the database.")
     
     except Exception as e:
-        print ("Error in getting MQTT settings:",e)
+        if enable_printing:
+           print ("Error in getting MQTT settings:",e)
 
 
 def on_disconnect(client, userdata, rc):
+    setting = Setting.objects.first()
+    enable_printing = setting.enable_printing if setting else False
+
     if rc != 0:
-        print("Unexpected disconnection.")
+        if enable_printing:
+          print("Unexpected disconnection.")
         attempt_reconnect(client)
 
 
 def attempt_reconnect(client):
+    setting = Setting.objects.first()
+    enable_printing = setting.enable_printing if setting else False
     attempt = 0
     while attempt < MAX_RECONNECT_ATTEMPTS:
         try:
@@ -459,16 +521,21 @@ def attempt_reconnect(client):
             client.username_pw_set(mqtt_settings["username"], mqtt_settings["password"])
             client.connect(mqtt_settings["host"], mqtt_settings["port"], mqtt_settings["keepalive"])
             client.loop_start()
-            print("Reconnected successfully.")
+            if enable_printing:
+               print("Reconnected successfully.")
             return  # Exit the loop if reconnection is successful
         except Exception as e:
             attempt += 1
-            print(f"Reconnection attempt {attempt}/{MAX_RECONNECT_ATTEMPTS} failed: {e}")
+            if enable_printing:
+              print(f"Reconnection attempt {attempt}/{MAX_RECONNECT_ATTEMPTS} failed: {e}")
             time.sleep(RECONNECT_DELAY)
-    
-    print("Failed to reconnect after multiple attempts.")
+    if enable_printing:
+       print("Failed to reconnect after multiple attempts.")
 
 def start_mqtt_client():
+    setting = Setting.objects.first()
+    enable_printing = setting.enable_printing if setting else False
+
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
     mqtt_client.on_disconnect = on_disconnect
@@ -480,5 +547,6 @@ def start_mqtt_client():
         mqtt_client.connect(mqtt_settings["host"], mqtt_settings["port"], mqtt_settings["keepalive"])
         mqtt_client.loop_start()
     except Exception as e:
-        print("MQTT not connected. Error:", e)
+        if enable_printing:
+           print("MQTT not connected. Error:", e)
         attempt_reconnect(mqtt_client)
