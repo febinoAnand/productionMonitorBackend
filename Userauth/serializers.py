@@ -70,7 +70,7 @@ class UserAuthRegisterSerializer(serializers.Serializer):
     appToken = serializers.UUIDField(required=True,allow_null=False)
     sessionID = serializers.UUIDField(required=True,allow_null=False)
     deviceID = serializers.UUIDField(required=True,allow_null=False)
-    designation = serializers.CharField(max_length=15, required=True,allow_null=False)
+    designation = serializers.CharField(max_length=50, required=True,allow_null=False)
     name = serializers.CharField(max_length=30, required=True,allow_null=False)
     password = serializers.CharField(max_length=30, required=True,allow_null=False)
     notificationID = serializers.CharField(max_length=50, required=True,allow_null=False)
