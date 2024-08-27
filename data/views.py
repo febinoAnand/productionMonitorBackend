@@ -971,13 +971,16 @@ class ProductionViewSet(viewsets.ViewSet):
 
                         shift_json["shift_start_time"] = f"{first_production_data.date} {first_production_data.time}"
                         shift_json["shift_end_time"] = f"{last_production_data.date} {last_production_data.time}"
-
-                        split_hours = self.generate_hourly_intervals_with_dates(
+                        try:
+                            split_hours = self.generate_hourly_intervals_with_dates(
                             str(first_production_data.date),
                             str(last_production_data.date),
                             str(first_production_data.time),
                             str(last_production_data.time)
-                        )
+                           )
+                        except AttributeError:
+                            return Response({"error": "The method 'generate_hourly_intervals_with_dates' is not defined in 'ProductionViewSet'."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                        
                         if enable_printing:
                             print("Splitted hours:", split_hours)
 
@@ -1049,7 +1052,30 @@ class ProductionViewSet(viewsets.ViewSet):
         return Response(output_json, status=status.HTTP_200_OK)
 
 
+    def generate_hourly_intervals_with_dates(self, from_date, to_date, start_time, end_time):
+        start_datetime = datetime.strptime(f"{from_date} {start_time}", '%Y-%m-%d %H:%M:%S')
+        end_datetime = datetime.strptime(f"{to_date} {end_time}", '%Y-%m-%d %H:%M:%S')
 
+        intervals = []
+
+        if end_datetime <= start_datetime:
+            end_datetime += timedelta(days=1)
+
+        while start_datetime < end_datetime:
+            next_datetime = start_datetime + timedelta(hours=1) 
+            if next_datetime > end_datetime:
+                intervals.append([
+                    (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:%S')),
+                    (end_datetime.strftime('%Y-%m-%d'), end_datetime.strftime('%H:%M:%S'))
+                ])
+                break
+            intervals.append([
+                (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:%S')),
+                (next_datetime.strftime('%Y-%m-%d'), next_datetime.strftime('%H:%M:%S'))
+            ])
+            start_datetime = next_datetime 
+
+        return intervals
 
 class HourlyShiftReportViewSet(viewsets.ViewSet):
     def create(self, request):
