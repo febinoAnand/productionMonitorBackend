@@ -1,12 +1,14 @@
 import paho.mqtt.client as mqtt
 import json
 import time
-from datetime import datetime
 
 # MQTT broker details
 broker = "mqtt.univa.cloud"  # Replace with your broker address
 port = 1883  # Default MQTT port
 topic = "subscribeTopic"  # Replace with your topic
+
+# Initialize production count
+production_count = 0
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
@@ -32,12 +34,15 @@ client.loop_start()
 
 try:
     while True:
-        # Update the timestamp with the current time in seconds since the epoch
+        # Increment production count
+        production_count += 1
+
+        # Create JSON data with the current timestamp and incremented production count
         data = {
             "timestamp": int(time.time()),
             "device_token": "550e8400-e29b-41d4-a716-446655440000",
             "machine_id": "7AP2345ASW",
-            "value": 56
+            "production_count": production_count
         }
 
         # Convert the data to JSON
