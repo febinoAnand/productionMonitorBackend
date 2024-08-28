@@ -12,11 +12,11 @@ router.register('groups', GroupViewSet, basename="group")
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('userauth/', UserAuthAPI.as_view()),
-    path('userprompt/', UserAuthPrompt.as_view()),
-    path('userverify/', UserVerifyView.as_view()),
-    path('userregister/', UserRegisterView.as_view()),
-    path('resendotp/', ResendOTPView.as_view()),
+    path('userauth/', UserAuthAPI.as_view(), name='userauth'),
+    path('userprompt/', UserAuthPrompt.as_view(), name='userprompt'),
+    path('userverify/', UserVerifyView.as_view(), name='userverify'),
+    path('userregister/', UserRegisterView.as_view(), name='userregister'),
+    path('resendotp/', ResendOTPView.as_view(), name='resendotp'),
     path('userauthtoken/', obtain_auth_token, name='userauthtoken'),
     path('revoke-token/', RevokeAuthToken.as_view(), name='revoke_token'),
     path('userchangepassword/', ChangePasswordView.as_view(), name='change-password'),

@@ -939,6 +939,7 @@ class ProductionViewSet(viewsets.ViewSet):
             for machine in group.machine_list.all():
                 machine_json = {
                     "machine_id": machine.machine_id,
+                    "machine_name": machine.machine_name,
                     "shifts": []
                 }
 

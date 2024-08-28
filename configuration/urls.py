@@ -1,13 +1,10 @@
-from django.urls import path,include
-from rest_framework import routers
-from .views import MQTTViewSet,UARTViewSet,HttpsSettingsViewSet
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from configuration.views import MQTTViewSet, HttpsSettingsViewSet
 
-
-router = routers.DefaultRouter()
-# router.register('mqtt', MQTTViewSet)
-# router.register('uart',UARTViewSet)
-router.register('mqttsettings', MQTTViewSet)
-router.register('httpsettings', HttpsSettingsViewSet)
+router = DefaultRouter()
+router.register(r'mqttsettings', MQTTViewSet, basename='mqttsettings')
+router.register(r'httpsettings', HttpsSettingsViewSet, basename='httpsettings')
 
 urlpatterns = [
     path('',include(router.urls))

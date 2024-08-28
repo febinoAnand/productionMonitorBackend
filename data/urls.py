@@ -31,7 +31,7 @@ from .views import (
 from rest_framework import routers
 
 router = routers.DefaultRouter()
-router.register('problem', ProblemViewSet)
+router.register(r'problems', ProblemViewSet, basename='problem')
 router.register('lastproblem', LastProblemViewSet)
 router.register('logdata', LogDataViewSet)
 router.register('devicedata', DeviceDataViewSet)

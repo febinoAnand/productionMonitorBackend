@@ -1,22 +1,18 @@
-from django.urls import path,include
-from rest_framework import routers
-from .views import MachineViewSet, DeviceViewSet, RFIDViewSet, UnRegisteredViewSet, DeviceVerification, TokenAuthentication, UnRegisterViewSetPostMethod, MachineGroupViewSet, ShiftTimingViewSet,MachineViewSetUpdated
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import MachineViewSet, DeviceViewSet, UnRegisteredViewSet, MachineGroupViewSet, ShiftTimingViewSet, DeviceVerification, TokenAuthentication, UnRegisterViewSetPostMethod
 
-
-
-router = routers.DefaultRouter()
-router.register('machine',MachineViewSetUpdated)
-router.register('device',DeviceViewSet)
-# router.register('rfid',RFIDViewSet)
-router.register('unregister', UnRegisteredViewSet)
-router.register('machinegroup', MachineGroupViewSet)
-router.register('shifttimings', ShiftTimingViewSet)
+router = DefaultRouter()
+router.register(r'machine', MachineViewSet, basename='machine')
+router.register(r'device', DeviceViewSet, basename='device')
+router.register(r'unregister', UnRegisteredViewSet, basename='unregister')
+router.register(r'machinegroup', MachineGroupViewSet, basename='machinegroup')
+router.register(r'shifttimings', ShiftTimingViewSet, basename='shifttimings')
 
 urlpatterns = [
-    path('',include(router.urls)),
-    path('verify/', DeviceVerification.as_view()),
-    path('getToken/', TokenAuthentication.as_view()),
-    path('register/', UnRegisterViewSetPostMethod.as_view()),
-
-
+    path('verify/', DeviceVerification.as_view(), name='verify'),
+    path('getToken/', TokenAuthentication.as_view(), name='get-token'),
+    path('register/', UnRegisterViewSetPostMethod.as_view(), name='register'),
+    path('', include(router.urls)),
 ]
+
