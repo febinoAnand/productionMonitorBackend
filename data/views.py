@@ -939,7 +939,6 @@ class ProductionViewSet(viewsets.ViewSet):
             for machine in group.machine_list.all():
                 machine_json = {
                     "machine_id": machine.machine_id,
-                    "machine_name": machine.machine_name,
                     "shifts": []
                 }
 
@@ -1077,6 +1076,13 @@ class ProductionViewSet(viewsets.ViewSet):
             start_datetime = next_datetime 
 
         return intervals
+    
+    def convert_to_12hr_format(self, time_str):
+        try:
+            time_obj = datetime.strptime(time_str, '%H:%M:%S')
+            return time_obj.strftime('%I:%M %p')
+        except ValueError:
+            return time_str
 
 class HourlyShiftReportViewSet(viewsets.ViewSet):
     def create(self, request):
