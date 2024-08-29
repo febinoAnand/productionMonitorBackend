@@ -26,7 +26,8 @@ from .views import (
     MachineHourlyDataViewSet,
     IndividualViewSet,
     ShiftDataViewSet,
-    AchievementsViewSet
+    AchievementsViewSet,
+    IndividualShiftReportViewSet
 )
 from rest_framework import routers
 
@@ -54,6 +55,7 @@ router.register(r'machine-hourly-data', MachineHourlyDataViewSet, basename='mach
 router.register(r'individual', IndividualViewSet, basename='individual')
 router.register(r'dashboard-data', ShiftDataViewSet, basename='dashboard-data')
 router.register(r'achievements', AchievementsViewSet, basename='achievements')
+router.register(r'individual-report', IndividualShiftReportViewSet, basename='individual-report'),
 
 urlpatterns = [
     path('livedata', LiveDataViewset.as_view()),
