@@ -1794,40 +1794,30 @@ class IndividualShiftReportViewSet(viewsets.ViewSet):
     def list(self, request):
         today = datetime.now().date()
         all_production_data = ProductionData.objects.filter(production_date=today).order_by('machine_id', 'timestamp')
-        machine_data = MachineData.objects.all()
-        machines = MachineDetails.objects.all()
-
-        machine_data_by_machine = {}
-        for data in machine_data:
-            machine_id = str(data.machine_id)
-            if machine_id not in machine_data_by_machine:
-                machine_data_by_machine[machine_id] = []
-            machine_data_by_machine[machine_id].append(data)
-
-        for machine_id, data_list in machine_data_by_machine.items():
-            machine_data_by_machine[machine_id] = sorted(data_list, key=lambda x: x.timestamp, reverse=True)[:10]
 
         output_json = {
             "date": today.strftime('%Y-%m-%d'),
             "machines": []
         }
 
-        for machine in machines:
-            machine_id = str(machine.machine_id)
-            if machine_id not in machine_data_by_machine:
-                continue
+        machines_details = {}
+        for data in all_production_data:
+            machine_id = data.machine_id
+            machine_name = data.machine_name
+            if machine_id not in machines_details:
+                machines_details[machine_id] = {
+                    "machine_id": machine_id,
+                    "machine_name": machine_name,
+                    "shifts_data": {},
+                    "shifts": []
+                }
 
-            machine_data_for_machine = machine_data_by_machine[machine_id]
-            machine_details = {
-                "machine_id": machine_id,
-                "machine_name": machine.machine_name,
-                "shifts_data": {},
-                "shifts": [],
-                "machine_data": MachineDataSerializer(machine_data_for_machine, many=True).data,
-            }
+        total_shifts = ShiftTiming.objects.all()
 
-            total_shifts = ShiftTiming.objects.all()
+        for machine_id, machine_details in machines_details.items():
             machine_production_data = all_production_data.filter(machine_id=machine_id)
+
+            machine_details["shifts_data"] = {}
 
             latest_shift_number = None
             latest_shift_data = None
@@ -1873,6 +1863,7 @@ class IndividualShiftReportViewSet(viewsets.ViewSet):
 
                     for start_end_datetime in split_hours:
                         count = 0
+                        target = 0
                         target_production_count = 0
 
                         start_date = start_end_datetime[0][0]
