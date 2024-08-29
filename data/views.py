@@ -1261,12 +1261,13 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
             return Response({"error": "Both 'date' and 'machine_id' are required."}, status=status.HTTP_400_BAD_REQUEST)
 
         select_date = datetime.strptime(select_date, '%Y-%m-%d').date()
-
+        machine = MachineDetails.objects.get(machine_id = machine_id)
         all_production_data = ProductionData.objects.filter(production_date=select_date, machine_id=machine_id).order_by('timestamp')
 
         output_json = {
             "date": select_date.strftime('%Y-%m-%d'),
             "machine_id": machine_id,
+            "machine_name": machine.machine_name,
             "shifts": []
         }
 
