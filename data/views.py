@@ -1506,7 +1506,7 @@ class IndividualViewSet(viewsets.ViewSet):
         seven_days_ago = today - timedelta(days=7)
         
         machines = MachineDetails.objects.all()
-        machine_data = MachineData.objects.all()
+        machine_data = MachineData.objects.all()[:20]
         production_data_today = ProductionData.objects.filter(date=today)
         production_data_last_seven_days = ProductionData.objects.filter(date__range=[seven_days_ago, today])
 
@@ -1584,7 +1584,7 @@ class IndividualViewSet(viewsets.ViewSet):
         today = timezone.now().date()
         seven_days_ago = today - timedelta(days=7)
         
-        machine_data = MachineData.objects.filter(machine_id=pk)
+        machine_data = MachineData.objects.filter(machine_id=pk)[:20]
         production_data_today = ProductionData.objects.filter(date=today, machine_id=machine.machine_id)
         production_data_last_seven_days = ProductionData.objects.filter(date__range=[seven_days_ago, today], machine_id=machine.machine_id)
 
