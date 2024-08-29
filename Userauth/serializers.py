@@ -16,7 +16,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     
 class UserDetailSerializer(serializers.ModelSerializer):
-    usermod = UserSerializer(source="extUser", read_only=False)
+    usermod = UserSerializer(source="extUser", read_only=True)
     userdetail_id = serializers.IntegerField(source="id", read_only=True)
     user_id = serializers.IntegerField(source="extUser.id", read_only=True)
     userActive = serializers.BooleanField(source="extUser.is_active")
@@ -25,49 +25,49 @@ class UserDetailSerializer(serializers.ModelSerializer):
         model = UserDetail
         fields = ('userdetail_id', 'user_id', 'usermod', 'designation', 'mobile_no', 'userActive')
     
-    def update(self, instance, validated_data):
-        print("Starting update method")
-        ext_user_data = validated_data.pop('extUser', None)
-        print("Extracted ext_user_data:", ext_user_data)
+    # def update(self, instance, validated_data):
+    #     print("Starting update method")
+    #     ext_user_data = validated_data.pop('extUser', None)
+    #     print("Extracted ext_user_data:", ext_user_data)
 
-        if ext_user_data:
-            username = ext_user_data.get('username')
-            user_instance = instance.extUser
-            print("Current user instance:", user_instance)
+    #     if ext_user_data:
+    #         username = ext_user_data.get('username')
+    #         user_instance = instance.extUser
+    #         print("Current user instance:", user_instance)
 
-            if username:
-                print("Username provided:", username)
-                # Check if the username belongs to another user
-                existing_user = User.objects.filter(username=username).first()
-                print("Existing user with the username:", existing_user)
+    #         if username:
+    #             print("Username provided:", username)
+    #             # Check if the username belongs to another user
+    #             existing_user = User.objects.filter(username=username).first()
+    #             print("Existing user with the username:", existing_user)
 
-                if existing_user and existing_user != user_instance:
-                    print(f"Username {username} belongs to another user. Updating that user.")
-                    # Update the existing user with the new details from ext_user_data
-                    for attr, value in ext_user_data.items():
-                        print(f"Updating {attr} for the existing user.")
-                        setattr(existing_user, attr, value)
-                    existing_user.save()
+    #             if existing_user and existing_user != user_instance:
+    #                 print(f"Username {username} belongs to another user. Updating that user.")
+    #                 # Update the existing user with the new details from ext_user_data
+    #                 for attr, value in ext_user_data.items():
+    #                     print(f"Updating {attr} for the existing user.")
+    #                     setattr(existing_user, attr, value)
+    #                 existing_user.save()
                     
-                    # Reassign the UserDetail instance to the existing user
-                    instance.extUser = existing_user
-                    print("Reassigned UserDetail to the existing user.")
-                else:
-                    print(f"Username {username} belongs to the current user or no conflict found.")
-                    # Update the current user instance with the new details
-                    for attr, value in ext_user_data.items():
-                        print(f"Updating {attr} for the current user.")
-                        setattr(user_instance, attr, value)
-                    user_instance.save()
+    #                 # Reassign the UserDetail instance to the existing user
+    #                 instance.extUser = existing_user
+    #                 print("Reassigned UserDetail to the existing user.")
+    #             else:
+    #                 print(f"Username {username} belongs to the current user or no conflict found.")
+    #                 # Update the current user instance with the new details
+    #                 for attr, value in ext_user_data.items():
+    #                     print(f"Updating {attr} for the current user.")
+    #                     setattr(user_instance, attr, value)
+    #                 user_instance.save()
 
-        try:
-            # Update the UserDetail fields
-            result = super().update(instance, validated_data)
-            print("UserDetail instance updated:", result)
-            return result
-        except Exception as e:
-            print("Error during update:", str(e))
-            raise e
+    #     try:
+    #         # Update the UserDetail fields
+    #         result = super().update(instance, validated_data)
+    #         print("UserDetail instance updated:", result)
+    #         return result
+    #     except Exception as e:
+    #         print("Error during update:", str(e))
+    #         raise e
 
 class SettingSerializer(serializers.ModelSerializer):
     class Meta:

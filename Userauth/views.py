@@ -49,10 +49,63 @@ class UnauthUserViewSet(viewsets.ModelViewSet):
     queryset = UnauthUser.objects.all().order_by('-pk')
     permission_classes = [IsAuthenticated]
 
+    # def update(self, request, pk=None, project_pk=None):
+    #     print(request.data['result'])
+
+   
+        # partial = kwargs.pop('partial', False)
+        
+        # instance = self.get_object()
+        # serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        # serializer.is_valid(raise_exception=True)
+        # self.perform_update(serializer)
+        # return Response(request.data)
+    # def partial_update(self, request, *args, **kwargs):
+    #     instance = self.queryset.get(pk=kwargs.get('pk'))
+    #     serializer = self.serializer_class(instance, data=request.data, partial=True)
+    #     serializer.is_valid(raise_exception=True)
+    #     serializer.save()
+    #     return Response(serializer.data)
+
+
 class UserDetailViewSet(viewsets.ModelViewSet):
     serializer_class = UserDetailSerializer
     queryset = UserDetail.objects.all().order_by('-pk')
     permission_classes = [IsAuthenticated]
+    def update(self, request, *args, **kwargs):
+        # print (request.data)
+
+        jsondata = request.data
+        
+        try:
+            fetchUserDetails = UserDetail.objects.filter(id = jsondata['userdetail_id'])
+            if len(fetchUserDetails) <= 0:
+                print("No Userdetails found")
+                return JsonResponse({"message":"Invalid User Details"})    
+            
+            fetchUserDetails = fetchUserDetails[0]
+            
+            if fetchUserDetails.extUser.id != jsondata['user_id']:
+                print("User mismatch found")
+                return JsonResponse({"message":"Invalid User"})    
+            
+            #update name, designation, active status
+            fetchUserDetails.extUser.first_name = jsondata['usermod']['first_name']
+            fetchUserDetails.extUser.is_active = jsondata['userActive']
+            fetchUserDetails.designation = jsondata['designation']
+            fetchUserDetails.extUser.save()
+            fetchUserDetails.save()
+
+
+       
+        except Exception as e:
+            print (e)
+            return JsonResponse({"message":"Invalid JSON data"})
+            
+
+        
+
+        return JsonResponse(request.data)
 
 class SettingViewSet(viewsets.ModelViewSet):
     serializer_class = SettingSerializer
