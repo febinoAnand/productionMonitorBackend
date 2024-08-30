@@ -57,31 +57,31 @@ class MachineViewSet(viewsets.ModelViewSet):
         except DeviceDetails.DoesNotExist:
             return Response({"error": "Device not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    def update(self, request, *args, **kwargs):
-        res_data = request.data
-        print(res_data)
-        machine_id = res_data.get('id')
+    # def update(self, request, *args, **kwargs):
+    #     res_data = request.data
+    #     print(res_data)
+    #     machine_id = res_data.get('machine_id')
 
         
         
-        try:
-            machine = MachineDetails.objects.get(id=machine_id)
-            # device_id = res_data.get('Device', {}).get('id')
-            # device = DeviceDetails.objects.get(id=device_id)
+    #     try:
+    #         machine = MachineDetails.objects.get(machine_id=machine_id)
+    #         # device_id = res_data.get('Device', {}).get('id')
+    #         # device = DeviceDetails.objects.get(id=device_id)
 
-            machine.machine_id = res_data.get('machine_id', machine.machine_id)
-            machine.machine_name = res_data.get('machine_name', machine.machine_name)
-            machine.line = res_data.get('line', machine.line)
-            machine.manufacture = res_data.get('manufacture', machine.manufacture)
-            machine.year = res_data.get('year', machine.year)
-            machine.production_per_hour = res_data.get('production_per_hour', machine.production_per_hour)
-            # machine.device = device
+    #         machine.machine_id = res_data.get('machine_id', machine.machine_id)
+    #         machine.machine_name = res_data.get('machine_name', machine.machine_name)
+    #         machine.line = res_data.get('line', machine.line)
+    #         machine.manufacture = res_data.get('manufacture', machine.manufacture)
+    #         machine.year = res_data.get('year', machine.year)
+    #         machine.production_per_hour = res_data.get('production_per_hour', machine.production_per_hour)
+    #         # machine.device = device
             
-            machine.save()
-            serializer = MachineSerializer(machine)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except MachineDetails.DoesNotExist:
-            return Response({"error": "Machine not found"}, status=status.HTTP_404_NOT_FOUND)
+    #         machine.save()
+    #         serializer = MachineSerializer(machine)
+    #         return Response(serializer.data, status=status.HTTP_200_OK)
+    #     except MachineDetails.DoesNotExist:
+    #         return Response({"error": "Machine not found"}, status=status.HTTP_404_NOT_FOUND)
         # except DeviceDetails.DoesNotExist:
         #     return Response({"error": "Device not found"}, status=status.HTTP_404_NOT_FOUND)
 
