@@ -963,84 +963,114 @@ class ProductionViewSet(viewsets.ViewSet):
                     }
 
                     current_shift_production = all_production_data.filter(shift_number=shift.shift_number)
-                    if enable_printing:
-                        print("Current Shift Production for Shift Number", shift.shift_number, ":", current_shift_production)
+                    # if enable_printing:
+                    # print("Current Shift Production for Shift Number", shift.shift_number, ":", current_shift_production)
+                    # print 
+                    # print
 
-                    if current_shift_production.exists():
-                        first_production_data = current_shift_production.first()
-                        last_production_data = current_shift_production.last()
+                    
 
-                        shift_json["shift_start_time"] = f"{first_production_data.date} {first_production_data.time}"
-                        shift_json["shift_end_time"] = f"{last_production_data.date} {last_production_data.time}"
-                        try:
-                            split_hours = self.generate_hourly_intervals_with_dates(
-                            str(first_production_data.date),
-                            str(last_production_data.date),
-                            str(first_production_data.time),
-                            str(last_production_data.time)
-                           )
-                        except AttributeError:
-                            return Response({"error": "The method 'generate_hourly_intervals_with_dates' is not defined in 'ProductionViewSet'."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    count = 0
+                    lastcount = 0
+                    try:
+                        sub_data_first = current_shift_production.first()
+                        first_before_data = ProductionData.objects.filter(
+                            machine_id=machine.machine_id,
+                            timestamp__lt=sub_data_first.timestamp
+                        ).last()
+                        lastcount = first_before_data.production_count
+                    except:
+                        pass
+                    if current_shift_production:
+                        for pro_shift_data in current_shift_production:
+                            temp = pro_shift_data.production_count - lastcount
+                            count += temp if temp >= 0 else pro_shift_data.production_count
+                            lastcount = pro_shift_data.production_count
+                    shift_json["total_shift_production_count"] = count
+                    
+                    # if current_shift_production:
+                    #     sub_data_first = current_shift_production.first()
+                    #     first_before_data = ProductionData.objects.filter(
+                    #             machine_id=machine.machine_id,
+                    #             timestamp__lt=sub_data_first.timestamp
+                    #         ).last()
+                        # print (sub_data_first.timestamp)
+                        # print (first_before_data.timestamp)
+                    # if current_shift_production.exists():
+                    #     first_production_data = current_shift_production.first()
+                    #     last_production_data = current_shift_production.last()
+
+                        # shift_json["shift_start_time"] = f"{first_production_data.date} {first_production_data.time}"
+                        # shift_json["shift_end_time"] = f"{last_production_data.date} {last_production_data.time}"
+                        # try:
+                        #     split_hours = self.generate_hourly_intervals_with_dates(
+                        #     str(first_production_data.date),
+                        #     str(last_production_data.date),
+                        #     str(first_production_data.time),
+                        #     str(last_production_data.time)
+                        #    )
+                        # except AttributeError:
+                        #     return Response({"error": "The method 'generate_hourly_intervals_with_dates' is not defined in 'ProductionViewSet'."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                         
-                        if enable_printing:
-                            print("Splitted hours:", split_hours)
+                        # if enable_printing:
+                        #     print("Splitted hours:", split_hours)
 
-                        last_inc_count = 0
-                        shift_timing_list = {}
+                        # last_inc_count = 0
+                        # shift_timing_list = {}
 
-                        for start_end_datetime in split_hours:
-                            count = 0
+                        # for start_end_datetime in split_hours:
+                        #     count = 0
 
-                            start_date = start_end_datetime[0][0]
-                            start_time = start_end_datetime[0][1]
+                        #     start_date = start_end_datetime[0][0]
+                        #     start_time = start_end_datetime[0][1]
 
-                            end_date = start_end_datetime[1][0]
-                            end_time = start_end_datetime[1][1]
+                        #     end_date = start_end_datetime[1][0]
+                        #     end_time = start_end_datetime[1][1]
 
-                            if enable_printing:
-                                print(start_date, start_time, end_date, end_time)
+                        #     if enable_printing:
+                        #         print(start_date, start_time, end_date, end_time)
 
-                            sub_data = current_shift_production.filter(
-                                date__gte=start_date, date__lte=end_date,
-                                time__gte=start_time, time__lte=end_time
-                            )
+                        #     sub_data = current_shift_production.filter(
+                        #         date__gte=start_date, date__lte=end_date,
+                        #         time__gte=start_time, time__lte=end_time
+                        #     )
                             
-                            if end_date == last_production_data.date.strftime("%Y-%m-%d") and end_time == last_production_data.time.strftime("%H:%M:%S"):
-                                sub_data = current_shift_production.filter(date__gte=start_date, date__lte=end_date).filter(time__gte=start_time, time__lte=end_time)
+                        #     if end_date == last_production_data.date.strftime("%Y-%m-%d") and end_time == last_production_data.time.strftime("%H:%M:%S"):
+                        #         sub_data = current_shift_production.filter(date__gte=start_date, date__lte=end_date).filter(time__gte=start_time, time__lte=end_time)
 
-                            try:
-                                sub_data_first = sub_data.first()
-                                first_before_data = ProductionData.objects.filter(
-                                    machine_id=machine.machine_id,
-                                    timestamp__lt=sub_data_first.timestamp
-                                ).last()
-                                last_inc_count = first_before_data.production_count
-                            except:
-                                pass
+                        #     try:
+                        #         sub_data_first = sub_data.first()
+                        #         first_before_data = ProductionData.objects.filter(
+                        #             machine_id=machine.machine_id,
+                        #             timestamp__lt=sub_data_first.timestamp
+                        #         ).last()
+                        #         last_inc_count = first_before_data.production_count
+                        #     except:
+                        #         pass
 
-                            if enable_printing:
-                                print(" -> LastIncCount", last_inc_count)
+                        #     if enable_printing:
+                        #         print(" -> LastIncCount", last_inc_count)
 
-                            for data in sub_data:
-                                if enable_printing:
-                                    print(" -> Data Entry:", data.date, data.time, data.shift_number, data.production_count, data.timestamp)
-                                temp = data.production_count - last_inc_count
-                                count += temp if temp >= 0 else data.production_count
-                                last_inc_count = data.production_count
+                        #     for data in sub_data:
+                        #         if enable_printing:
+                        #             print(" -> Data Entry:", data.date, data.time, data.shift_number, data.production_count, data.timestamp)
+                        #         temp = data.production_count - last_inc_count
+                        #         count += temp if temp >= 0 else data.production_count
+                        #         last_inc_count = data.production_count
 
-                            if enable_printing:
-                                print(" -> Total =", count)
-                            shift_timing_list[self.convert_to_12hr_format(start_time) + " - " + self.convert_to_12hr_format(end_time)] = count
-                            if enable_printing:
-                                print()
+                        #     if enable_printing:
+                        #         print(" -> Total =", count)
+                        #     shift_timing_list[self.convert_to_12hr_format(start_time) + " - " + self.convert_to_12hr_format(end_time)] = count
+                        #     if enable_printing:
+                        #         print()
                             
-                            shift_json["total_shift_production_count"] += count
+                        #     shift_json["total_shift_production_count"] += count
 
-                        shift_json["timing"] = shift_timing_list
-                        if enable_printing:
-                            print()
+                        # shift_json["timing"] = shift_timing_list
+                        # if enable_printing:
+                        #     print()
                         
-                            print()
+                        #     print()
 
                     machine_json["shifts"].append(shift_json)
 
@@ -1351,7 +1381,7 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
                         temp_count = data.production_count - last_inc_count
                         count += temp_count if temp_count >= 0 else data.production_count
                         last_inc_count = data.production_count
-                        target_production_count += data.target_production
+                        target_production_count = data.target_production
 
                     if target_production_count > 0:
                         last_target_production = target_production_count  # Update last non-zero target production
