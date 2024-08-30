@@ -1671,7 +1671,7 @@ class ShiftDataViewSet(viewsets.ViewSet):
         setting = Setting.objects.first()
         enable_printing = setting.enable_printing if setting else False
         today = timezone.now().date()
-        production_data_today = ProductionData.objects.filter(date=today).order_by('timestamp')
+        # production_data_today = ProductionData.objects.filter(date=today).order_by('timestamp')
 
         previous_counts = {}
         total_production_count = 0
@@ -1700,54 +1700,74 @@ class ShiftDataViewSet(viewsets.ViewSet):
             for machine in group.machine_list.all():
                 machine_id = machine.machine_id
                 machine_name = machine.machine_name
+                machine_target = machine.production_per_hour
+
+               
+                current_production_data = ProductionData.objects.filter(machine_id=machine_id, date = today ).order_by('timestamp')
+                count = 0
+                lastcount = 0
+                try:
+                    sub_data_first = current_production_data.first()
+                    first_before_data = ProductionData.objects.filter(
+                        machine_id=machine.machine_id,
+                        timestamp__lt=sub_data_first.timestamp
+                    ).last()
+                    lastcount = first_before_data.production_count
+                except:
+                    pass
+                if current_production_data:
+                    for pro_shift_data in current_production_data:
+                        temp = pro_shift_data.production_count - lastcount
+                        count += temp if temp >= 0 else pro_shift_data.production_count
+                        lastcount = pro_shift_data.production_count
 
                 group_data[group_id]['machines'][machine_id] = {
                     'machine_id': machine_id,
                     'machine_name': machine_name,
-                    'production_count': 0,
-                    'target_production': 0,
+                    'production_count': count,
+                    'target_production': machine_target,
                     'count_difference': 0,
                     'previous_production_count': 0
                 }
 
-        for data in production_data_today:
-            if data.shift_number != current_shift:
-                current_shift = data.shift_number
-                for group in group_data.values():
-                    group['total_production_count'] = 0
-                    group['total_target_production'] = 0
-                    group['total_count_difference'] = 0
-                    for machine in group['machines'].values():
-                        machine['production_count'] = 0
-                        machine['target_production'] = 0
-                        machine['count_difference'] = 0
-                        machine['previous_production_count'] = 0
-                total_production_count = 0
-                total_target_production = 0
-                total_count_difference = 0
-                previous_counts = {}
+        # for data in production_data_today:
+        #     if data.shift_number != current_shift:
+        #         current_shift = data.shift_number
+        #         for group in group_data.values():
+        #             group['total_production_count'] = 0
+        #             group['total_target_production'] = 0
+        #             group['total_count_difference'] = 0
+        #             for machine in group['machines'].values():
+        #                 machine['production_count'] = 0
+        #                 machine['target_production'] = 0
+        #                 machine['count_difference'] = 0
+        #                 machine['previous_production_count'] = 0
+        #         total_production_count = 0
+        #         total_target_production = 0
+        #         total_count_difference = 0
+        #         previous_counts = {}
 
-            previous_count = previous_counts.get(data.machine_id, 0)
-            count_diff = data.production_count - previous_count
-            previous_counts[data.machine_id] = data.production_count
+        #     previous_count = previous_counts.get(data.machine_id, 0)
+        #     count_diff = data.production_count - previous_count
+        #     previous_counts[data.machine_id] = data.production_count
 
-            group = MachineGroup.objects.filter(machine_list__machine_name=data.machine_name).first()
-            group_id = group.id if group else None
+        #     group = MachineGroup.objects.filter(machine_list__machine_name=data.machine_name).first()
+        #     group_id = group.id if group else None
 
-            if group_id in group_data and data.machine_id in group_data[group_id]['machines']:
-                machine_data = group_data[group_id]['machines'][data.machine_id]
-                machine_data['production_count'] = data.production_count
-                machine_data['target_production'] = data.target_production
-                machine_data['count_difference'] = count_diff
-                machine_data['previous_production_count'] = previous_count
+        #     if group_id in group_data and data.machine_id in group_data[group_id]['machines']:
+        #         machine_data = group_data[group_id]['machines'][data.machine_id]
+        #         machine_data['production_count'] = data.production_count
+        #         machine_data['target_production'] = data.target_production
+        #         machine_data['count_difference'] = count_diff
+        #         machine_data['previous_production_count'] = previous_count
 
-                group_data[group_id]['total_production_count'] += data.production_count
-                group_data[group_id]['total_target_production'] += data.target_production
-                group_data[group_id]['total_count_difference'] += count_diff
+        #         group_data[group_id]['total_production_count'] += data.production_count
+        #         group_data[group_id]['total_target_production'] += data.target_production
+        #         group_data[group_id]['total_count_difference'] += count_diff
 
-                total_production_count += data.production_count
-                total_target_production += data.target_production
-                total_count_difference += count_diff
+        #         total_production_count += data.production_count
+        #         total_target_production += data.target_production
+        #         total_count_difference += count_diff
 
         response_data = {
             'groups': [
