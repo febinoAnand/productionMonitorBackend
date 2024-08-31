@@ -296,44 +296,44 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
         publish_response(mqtt_client, device_token, errors, is_error=True)
         return False
 
-    for key, value in message_data.items():
-        if key in ['timestamp', 'device_token', 'cmd', 'shift_no']:
-            continue  # Skip non-machine ID keys
+    # for key, value in message_data.items():
+    #     if key in ['timestamp', 'device_token', 'cmd', 'shift_no']:
+    #         continue  # Skip non-machine ID keys
 
-        machine_id = key
-        machine_data_content = value
+    #     machine_id = key
+    #     machine_data_content = value
 
-        try:
-            machine = MachineDetails.objects.get(machine_id=machine_id)
-        except MachineDetails.DoesNotExist:
-            if enable_printing:
-              print(f'Machine ID mismatch for {machine_id}')
-            continue  # Skip this machine_id and move to the next one
+    #     try:
+    #         machine = MachineDetails.objects.get(machine_id=machine_id)
+    #     except MachineDetails.DoesNotExist:
+    #         if enable_printing:
+    #           print(f'Machine ID mismatch for {machine_id}')
+    #         continue  # Skip this machine_id and move to the next one
 
-        try:
-            machine_data = MachineData(
-                date=message_date,
-                time=message_time,
-                machine_id=machine,
-                data={machine_id: machine_data_content},
-                device_id=device,
-                log_data_id=log_data,
-                timestamp=str(timestamp)
-            )
-            machine_data.save()
-            if enable_printing:
-              print(f'Saved machine data to database: {machine_data}')
+    #     try:
+    #         machine_data = MachineData(
+    #             date=message_date,
+    #             time=message_time,
+    #             machine_id=machine,
+    #             data={machine_id: machine_data_content},
+    #             device_id=device,
+    #             log_data_id=log_data,
+    #             timestamp=str(timestamp)
+    #         )
+    #         machine_data.save()
+    #         if enable_printing:
+    #           print(f'Saved machine data to database: {machine_data}')
 
-        except Exception as e:
-            errors.append({
-                "status": "DATA SAVE ERROR",
-                "message": f"Error saving machine data: {e}",
-                "device_token": device_token,
-                "timestamp": timestamp,
-            })
-            if enable_printing:
-              print(f'Error saving machine data to database: {e}')
-            continue  # Continue with the next machine data
+    #     except Exception as e:
+    #         errors.append({
+    #             "status": "DATA SAVE ERROR",
+    #             "message": f"Error saving machine data: {e}",
+    #             "device_token": device_token,
+    #             "timestamp": timestamp,
+    #         })
+    #         if enable_printing:
+    #           print(f'Error saving machine data to database: {e}')
+    #         continue  # Continue with the next machine data
 
     device_data = DeviceData(
         date=message_date,
@@ -389,8 +389,9 @@ def handle_production_data(mqtt_client, message_data, log_data):
               print(f"No machine found for machine_id: {machine_id}")
             continue
 
-        last_production_data = ProductionData.objects.filter(machine_id=machine.machine_id).order_by('-date', '-time').first()
+        last_production_data = ProductionData.objects.filter(machine_id=machine.machine_id, timestamp__lt = timestamp).order_by('-timestamp').first()
 
+        print ("Last production:",last_production_data.date,last_production_data.time,last_production_data.shift_number, last_production_data.machine_id, last_production_data.production_count, last_production_data.target_production)
         # if last_production_data and last_production_data.production_count > production_count:
         #     errors.append({
         #         "status": "PRODUCTION COUNT ERROR",
@@ -415,22 +416,25 @@ def handle_production_data(mqtt_client, message_data, log_data):
         production_date = message_date - datetime.timedelta(days=1) if dt.time() < end_shift_time and shift_number == end_shift_number else message_date
 
         try:
-            production_data = ProductionData(
-                date=message_date,
-                time=message_time,
-                shift_number=shift_instance.shift_number,
-                shift_name=shift_instance.shift_name,
-                target_production=machine.production_per_hour,
-                machine_id=machine.machine_id,
-                machine_name=machine.machine_name,
-                production_count=production_count,
-                production_date=production_date,
-                log_data_id=log_data.id,
-                timestamp=timestamp
-            )
-            production_data.save()
-            if enable_printing:
-              print(f'Saved production data to database: {production_data}')
+            if last_production_data.shift_number != shift_instance.shift_number or last_production_data.target_production != machine.production_per_hour or last_production_data.production_count != production_count or last_production_data.production_date != production_date:
+                production_data = ProductionData(
+                    date=message_date,
+                    time=message_time,
+                    shift_number=shift_instance.shift_number,
+                    shift_name=shift_instance.shift_name,
+                    target_production=machine.production_per_hour,
+                    machine_id=machine.machine_id,
+                    machine_name=machine.machine_name,
+                    production_count=production_count,
+                    production_date=production_date,
+                    log_data_id=log_data.id,
+                    timestamp=timestamp
+                )
+                production_data.save()
+                print ("Production:",production_data.date,production_data.time,production_data.shift_number, production_data.machine_id, production_data.production_count, production_data.target_production)
+
+                if enable_printing:
+                    print(f'Saved production data to database: {production_data}')
 
         except Exception as e:
             errors.append({
@@ -442,7 +446,7 @@ def handle_production_data(mqtt_client, message_data, log_data):
             if enable_printing:
               print(f'Error saving production data to database: {e}')
             continue
-
+        print()   
     # if errors:
     #     for error in errors:
     #         response = {
