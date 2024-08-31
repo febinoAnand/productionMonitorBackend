@@ -391,7 +391,7 @@ def handle_production_data(mqtt_client, message_data, log_data):
 
         last_production_data = ProductionData.objects.filter(machine_id=machine.machine_id, timestamp__lt = timestamp).order_by('-timestamp').first()
 
-        print ("Last production:",last_production_data.date,last_production_data.time,last_production_data.shift_number, last_production_data.machine_id, last_production_data.production_count, last_production_data.target_production)
+        # print ("Last production:",last_production_data.date,last_production_data.time,last_production_data.shift_number, last_production_data.machine_id, last_production_data.production_count, last_production_data.target_production)
         # if last_production_data and last_production_data.production_count > production_count:
         #     errors.append({
         #         "status": "PRODUCTION COUNT ERROR",
@@ -431,7 +431,7 @@ def handle_production_data(mqtt_client, message_data, log_data):
                     timestamp=timestamp
                 )
                 production_data.save()
-                print ("Production:",production_data.date,production_data.time,production_data.shift_number, production_data.machine_id, production_data.production_count, production_data.target_production)
+                # print ("Production:",production_data.date,production_data.time,production_data.shift_number, production_data.machine_id, production_data.production_count, production_data.target_production)
 
                 if enable_printing:
                     print(f'Saved production data to database: {production_data}')
