@@ -446,7 +446,7 @@ def handle_production_data(mqtt_client, message_data, log_data):
             if enable_printing:
               print(f'Error saving production data to database: {e}')
             continue
-        print()   
+    print()   
     # if errors:
     #     for error in errors:
     #         response = {
