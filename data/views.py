@@ -16,6 +16,7 @@ from rest_framework.exceptions import NotFound
 from collections import defaultdict
 from configuration.models import Setting
 import time
+import math
 
 class RawGetMethod(views.APIView):
     schema = None
@@ -1726,7 +1727,9 @@ class ShiftDataViewSet(viewsets.ViewSet):
                 current_production_data = ProductionData.objects.filter(date = running_production_date, shift_number = running_shift).order_by('timestamp')
                 if current_production_data.exists():
                     sub_data_first = current_production_data.first()
-                    multiplyTraget = round((currentTimeStamp - eval(sub_data_first.timestamp))/3600)
+                    multiplyTraget = math.ceil((currentTimeStamp - eval(sub_data_first.timestamp))/3600)
+                    if multiplyTraget > 8:
+                        multiplyTraget = 8
                     # print (machine_name,"Mulitply Traget : ",currentTimeStamp, "-", sub_data_first.timestamp , "=",currentTimeStamp-eval(sub_data_first.timestamp),multiplyTraget)
                     current_production_data = current_production_data.filter(machine_id=machine_id)
 
