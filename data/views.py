@@ -9,12 +9,13 @@ from .models import *
 from .serializers import *
 from django.db.models import Sum
 from django.utils.dateparse import parse_date
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from Userauth.models import UserDetail
 from django.db.models import Max
 from rest_framework.exceptions import NotFound
 from collections import defaultdict
 from configuration.models import Setting
+import time
 
 class RawGetMethod(views.APIView):
     schema = None
@@ -1671,16 +1672,27 @@ class ShiftDataViewSet(viewsets.ViewSet):
         setting = Setting.objects.first()
         enable_printing = setting.enable_printing if setting else False
         today = timezone.now().date()
+        currentTimeStamp = time.time()
         # production_data_today = ProductionData.objects.filter(date=today).order_by('timestamp')
 
-        previous_counts = {}
-        total_production_count = 0
-        total_target_production = 0
-        total_count_difference = 0
-        current_shift = None
+        # previous_counts = {}
+        # total_production_count = 0
+        # total_target_production = 0
+        # total_count_difference = 0
+        # current_shift = None
         group_data = {}
 
         all_groups = MachineGroup.objects.prefetch_related('machine_list').all()
+
+        last_production_data = ProductionData.objects.order_by('-timestamp').first()
+
+        running_shift = last_production_data.shift_number
+        running_production_date = last_production_data.production_date
+
+        # running_shift = 1
+        # running_production_date = date(2024,8,31)
+
+        # print(running_production_date, "--",running_shift)
 
         for group in all_groups:
             group_id = group.id
@@ -1691,6 +1703,7 @@ class ShiftDataViewSet(viewsets.ViewSet):
                     'group_id': group_id,
                     'group_name': group_name,
                     'machine_count': len(group.machine_list.all()),
+                    'running_shift':running_shift,
                     'machines': {},
                     'total_production_count': 0,
                     'total_target_production': 0,
@@ -1701,13 +1714,29 @@ class ShiftDataViewSet(viewsets.ViewSet):
                 machine_id = machine.machine_id
                 machine_name = machine.machine_name
                 machine_target = machine.production_per_hour
+                
+                
 
+                # print("currenttime->",currentTimestamp)
                
-                current_production_data = ProductionData.objects.filter(machine_id=machine_id, date = today ).order_by('timestamp')
+                
                 count = 0
                 lastcount = 0
-                try:
+                multiplyTraget = 0
+                current_production_data = ProductionData.objects.filter(date = running_production_date, shift_number = running_shift).order_by('timestamp')
+                if current_production_data.exists():
                     sub_data_first = current_production_data.first()
+                    multiplyTraget = round((currentTimeStamp - eval(sub_data_first.timestamp))/3600)
+                    # print (machine_name,"Mulitply Traget : ",currentTimeStamp, "-", sub_data_first.timestamp , "=",currentTimeStamp-eval(sub_data_first.timestamp),multiplyTraget)
+                    current_production_data = current_production_data.filter(machine_id=machine_id)
+
+                
+
+                try:
+                    
+                    sub_data_first = current_production_data.first()
+                    # sub_data_last = current_production_data.last()
+                    # machine_target = sub_data_last.target_production
                     first_before_data = ProductionData.objects.filter(
                         machine_id=machine.machine_id,
                         timestamp__lt=sub_data_first.timestamp
@@ -1715,17 +1744,23 @@ class ShiftDataViewSet(viewsets.ViewSet):
                     lastcount = first_before_data.production_count
                 except:
                     pass
+
+
                 if current_production_data:
                     for pro_shift_data in current_production_data:
+                        # if machine_id == "M016":
+                        #     print (pro_shift_data.date,pro_shift_data.time,pro_shift_data.shift_number,pro_shift_data.machine_id,pro_shift_data.machine_name,pro_shift_data.production_count,pro_shift_data.target_production,pro_shift_data.timestamp)
                         temp = pro_shift_data.production_count - lastcount
                         count += temp if temp >= 0 else pro_shift_data.production_count
                         lastcount = pro_shift_data.production_count
+                    # print()
+                    # print()
 
                 group_data[group_id]['machines'][machine_id] = {
                     'machine_id': machine_id,
                     'machine_name': machine_name,
                     'production_count': count,
-                    'target_production': machine_target,
+                    'target_production': machine_target * multiplyTraget,
                     'count_difference': 0,
                     'previous_production_count': 0
                 }
