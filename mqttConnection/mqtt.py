@@ -389,7 +389,10 @@ def handle_production_data(mqtt_client, message_data, log_data):
               print(f"No machine found for machine_id: {machine_id}")
             continue
 
-        last_production_data = ProductionData.objects.filter(machine_id=machine.machine_id, timestamp__lt = timestamp).order_by('-timestamp').first()
+        try:
+            last_production_data = ProductionData.objects.filter(machine_id=machine.machine_id, timestamp__lt = timestamp).order_by('-timestamp').first()
+        except e as Exception:
+           pass
 
         # print ("Last production:",last_production_data.date,last_production_data.time,last_production_data.shift_number, last_production_data.machine_id, last_production_data.production_count, last_production_data.target_production)
         # if last_production_data and last_production_data.production_count > production_count:
@@ -416,7 +419,7 @@ def handle_production_data(mqtt_client, message_data, log_data):
         production_date = message_date - datetime.timedelta(days=1) if dt.time() < end_shift_time and shift_number == end_shift_number else message_date
 
         try:
-            if last_production_data.shift_number != shift_instance.shift_number or last_production_data.target_production != machine.production_per_hour or last_production_data.production_count != production_count or last_production_data.production_date != production_date:
+            if not last_production_data or last_production_data.shift_number != shift_instance.shift_number or last_production_data.target_production != machine.production_per_hour or last_production_data.production_count != production_count or last_production_data.production_date != production_date:
                 production_data = ProductionData(
                     date=message_date,
                     time=message_time,

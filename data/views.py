@@ -1687,8 +1687,12 @@ class ShiftDataViewSet(viewsets.ViewSet):
 
         last_production_data = ProductionData.objects.order_by('-timestamp').first()
 
-        running_shift = last_production_data.shift_number
-        running_production_date = last_production_data.production_date
+        try:
+            running_shift = last_production_data.shift_number
+            running_production_date = last_production_data.production_date
+        except:
+            running_shift = 1
+            running_production_date = datetime.today().date()
 
         # running_shift = 1
         # running_production_date = date(2024,8,31)
