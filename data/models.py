@@ -120,3 +120,8 @@ class ProductionData(models.Model):
     
 
 
+class DashbaordData(models.Model):
+    date = models.DateField(auto_now=True)
+    time = models.TimeField(auto_now=True)
+    dashbaordData = models.JSONField()
+

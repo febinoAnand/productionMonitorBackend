@@ -44,6 +44,7 @@ MQTT_KEEP_ALIVE = 60
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -106,7 +107,19 @@ TEMPLATES = [
     },
 ]
 
+
+ASGI_APPLICATION = 'univaProductionMonitor.asgi.application'
+
 WSGI_APPLICATION = 'univaProductionMonitor.wsgi.application'
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("redis://:hlmando_9182837465@redis:6379/0")],
+        },
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases

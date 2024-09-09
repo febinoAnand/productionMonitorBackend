@@ -1,6 +1,7 @@
 from django.contrib import admin
+from django.http import HttpRequest
 from .models import RawData,ProblemData,LastProblemData
-from .models import LogData, DeviceData, MachineData, ProductionData
+from .models import LogData, DeviceData, ProductionData, DashbaordData
 # Register your models here.
 # class RawDataAdmin(admin.ModelAdmin):
 #     list_display = ["datetime", "data"]
@@ -55,14 +56,26 @@ class MachineDataAdmin(admin.ModelAdmin):
     list_filter = ('date', 'machine_id__machine_id', 'device_id__device_token')
 
 class ProductionDataAdmin(admin.ModelAdmin):
-    list_display = ( 'date', 'time','shift_number', 'machine_id', 'production_count', 'target_production','production_date')
-    search_fields = ('shift_name', 'machine_id')
-    list_filter = ('date','time','shift_number')
+    list_display = ( 'date', 'time','shift_number', 'machine_name', 'production_count', 'target_production','production_date')
+    search_fields = ('shift_name', 'machine_id','machine_name')
+    list_filter = ('date','time','shift_number','machine_name','production_date')
+
+class DashbaordDataAdmin(admin.ModelAdmin):
+    list_display = ('date','time','dashbaordData')
+    
+    # def has_add_permission(self, request: HttpRequest) -> bool:
+    #     return False
+    
+    # def has_delete_permission(self, request):
+    #     return False
+
+
 
 admin.site.register(LogData, LogDataAdmin)
 admin.site.register(DeviceData, DeviceDataAdmin)
-admin.site.register(MachineData, MachineDataAdmin)
+# admin.site.register(MachineData, MachineDataAdmin)
 admin.site.register(ProductionData, ProductionDataAdmin)
+admin.site.register(DashbaordData, DashbaordDataAdmin)
 # admin.site.register(RawData,RawDataAdmin)
 # admin.site.register(ProblemData,ProblemDataAdmin)
 # admin.site.register(LastProblemData,LastProblemDataAdmin)

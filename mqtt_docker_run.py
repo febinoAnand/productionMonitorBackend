@@ -17,7 +17,8 @@ from django.dispatch import receiver
 from django.conf import settings
 from configuration.models import Setting
 from univaProductionMonitor.celery import processAndSaveMqttData
-
+# from channels.layers import get_channel_layer
+# from asgiref.sync import async_to_sync
 
 
 subscribed_topics = set()
@@ -100,8 +101,10 @@ def publish_response(mqtt_client, device_token, response, is_error=False):
 
         # Publish the response to the topic
         result = mqtt_client.publish(publish_topic, json.dumps(response))
-        if enable_printing:
-          print(f"Response Published to {publish_topic}: {response} with result {result}")
+        # if enable_printing:
+        print()
+        print(f"Response Published to {publish_topic}: {response}")
+        # print(f"Response Published to {publish_topic}: {response} with result {result}")
 
     except Exception as e:
         if enable_printing:
@@ -141,11 +144,15 @@ def log_message(currentMessage, topic, protocol='MQTT'):
 
 def on_message(mqtt_client, userdata, msg):
 
+    print()
+    print()
     print(f'Received message on topic: {msg.topic} with payload: {msg.payload}')
     currentMessage = msg.payload.decode()
 
     # Log the message and get the parsed data and log entry
     message_data, log_data = log_message(currentMessage, msg.topic)
+
+    # processAndSaveMqttData.delay(msg.payload)
 
     # If the message is not a valid JSON, return after logging it
     if message_data is None:
@@ -162,14 +169,19 @@ def on_message(mqtt_client, userdata, msg):
     device_token = message_data.get('device_token', '')
     timestamp = message_data.get('timestamp', int(datetime.datetime.now().timestamp()))
 
-    processAndSaveMqttData.delay("working..")
+    
+    
     
     if 'cmd' in message_data and message_data['cmd'] == "TIMESTAMP" and device_token:
         handle_command_message(mqtt_client, msg, message_data, log_data)
     elif 'timestamp' in message_data and device_token and 'shift_no' in message_data:
         machine_data_saved = handle_machine_data(mqtt_client, msg, message_data, log_data)
         if machine_data_saved:
-            handle_production_data(mqtt_client, message_data, log_data)
+            # args = {"mqtt_client":mqtt_client,"message_data":message_data,"log_data":log_data}
+            message_data['log_id'] = log_data.id
+            processAndSaveMqttData.delay(message_data)
+            # print (args)
+            # handle_production_data(mqtt_client, message_data, log_data)
     else:
         response = {
             "status": "UNKNOWN FORMAT",
@@ -358,6 +370,15 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
         log_data_id=log_data
     )
     device_data.save()
+
+    response = {
+        "status": "OK",
+        "message": "Successfully saved data",
+        "device_token": device_token,
+        "timestamp": timestamp
+    }
+    publish_response(mqtt_client, device_token, response)
+    
     if enable_printing:
       print(f'Saved device data to database: {device_data}')
     
@@ -464,7 +485,7 @@ def handle_production_data(mqtt_client, message_data, log_data):
             if enable_printing:
               print(f'Error saving production data to database: {e}')
             continue
-    print()   
+    # print()   
     # if errors:
     #     for error in errors:
     #         response = {
@@ -474,15 +495,15 @@ def handle_production_data(mqtt_client, message_data, log_data):
     #         publish_response(mqtt_client, device_token, response, is_error=True)
     #     return False
 
-    response = {
-        "status": "OK",
-        "message": "Successfully saved data",
-        "device_token": device_token,
-        "timestamp": timestamp
-    }
-    publish_response(mqtt_client, device_token, response)
+    # response = {
+    #     "status": "OK",
+    #     "message": "Successfully saved data",
+    #     "device_token": device_token,
+    #     "timestamp": timestamp
+    # }
+    # publish_response(mqtt_client, device_token, response)
 
-    return True
+    # return True
 
     
 
