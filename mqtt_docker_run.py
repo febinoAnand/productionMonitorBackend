@@ -1,14 +1,24 @@
+
+import os
+import django
 import paho.mqtt.client as mqtt
 import json
 import datetime
+import time
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'univaProductionMonitor.settings')
+django.setup()
+
+
 from configuration.models import MqttSettings
 from data.models import LogData, DeviceData, MachineData,ProductionData
 from devices.models import DeviceDetails, MachineDetails,ShiftTiming
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
-import time
 from configuration.models import Setting
+from univaProductionMonitor.celery import processAndSaveMqttData
+
+
 
 subscribed_topics = set()
 
@@ -151,6 +161,8 @@ def on_message(mqtt_client, userdata, msg):
     # Extract device token and timestamp from the message
     device_token = message_data.get('device_token', '')
     timestamp = message_data.get('timestamp', int(datetime.datetime.now().timestamp()))
+
+    processAndSaveMqttData.delay("working..")
     
     if 'cmd' in message_data and message_data['cmd'] == "TIMESTAMP" and device_token:
         handle_command_message(mqtt_client, msg, message_data, log_data)
@@ -555,8 +567,10 @@ def start_mqtt_client():
     try:
         mqtt_client.username_pw_set(mqtt_settings["username"], mqtt_settings["password"])
         mqtt_client.connect(mqtt_settings["host"], mqtt_settings["port"], mqtt_settings["keepalive"])
-        mqtt_client.loop_start()
+        mqtt_client.loop_forever()
     except Exception as e:
         if enable_printing:
            print("MQTT not connected. Error:", e)
         attempt_reconnect(mqtt_client)
+
+start_mqtt_client()

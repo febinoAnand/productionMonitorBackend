@@ -165,8 +165,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Mobile app settings
 APP_TOKEN = "550e8400-e29b-41d4-a716-446655440000"
 
+# CELERY_TIMEZONE = os.environ.get("CELERY_TIMEZONE","Asia/kolkata")
+CELERY_TASK_TRACK_STARTED = os.environ.get("CELERY_TASK_TRACK_STARTED",True)
+CELERY_TASK_TIME_LIMIT = os.environ.get("CELERY_TASK_TIME_LIMIT",30 * 60)
+# CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL","redis://localhost:6379")
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL","redis://:hlmando_9182837465@redis:6379/0")
+# CELERY_RESULT_BACKEND = os.environ.get("CELERY_BACKEND","redis://localhost:6379")
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_BACKEND","redis://:hlmando_9182837465@redis:6379/0")
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
-CSRF_TRUSTED_ORIGINS = ['https://*.127.0.0.1','https://productionb.univa.cloud','https://production.univa.cloud']
+
+
+CSRF_TRUSTED_ORIGINS = ['https://*.127.0.0.1','https://productionb.univa.cloud','https://production.univa.cloud','http://localhost:3000','http://localhost:9020']
 
 
 
