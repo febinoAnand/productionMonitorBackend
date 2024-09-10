@@ -916,7 +916,11 @@ class ProductionViewSet(viewsets.ViewSet):
 
         select_date = request.data.get('date')
         if not select_date:
-            return Response({"error": "Date is required. Please provide a date in YYYY-MM-DD format."}, status=status.HTTP_400_BAD_REQUEST)
+            current_date = date.today()
+            current_time = datetime.now()
+            select_date = current_date - timedelta(days=1) if current_time > datetime.strptime("6:30","%H:%M")  else current_date
+            select_date = select_date.strftime('%Y-%m-%d')
+            # return Response({"error": "Date is required. Please provide a date in YYYY-MM-DD format."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             select_date = datetime.strptime(select_date, '%Y-%m-%d').date()
@@ -1294,6 +1298,9 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
 
         select_date = datetime.strptime(select_date, '%Y-%m-%d').date()
         machine = MachineDetails.objects.get(machine_id = machine_id)
+        if not machine:
+            return Response({"error": "Machine Not found"}, status=status.HTTP_400_BAD_REQUEST)
+
         all_production_data = ProductionData.objects.filter(production_date=select_date, machine_id=machine_id).order_by('timestamp')
 
         output_json = {
@@ -1414,7 +1421,7 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
             if next_datetime > end_datetime:
                 intervals.append([
                     (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:%S')),
-                    (end_datetime.strftime('%Y-%m-%d'), end_datetime.strftime('%H:%M:%S'))
+                    (next_datetime.strftime('%Y-%m-%d'), next_datetime.strftime('%H:%M:%S'))
                 ])
                 break
             intervals.append([

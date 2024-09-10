@@ -143,52 +143,54 @@ def log_message(currentMessage, topic, protocol='MQTT'):
 
 
 def on_message(mqtt_client, userdata, msg):
+    try:
+        print()
+        print()
+        print(f'Received message on topic: {msg.topic} with payload: {msg.payload}')
+        currentMessage = msg.payload.decode()
 
-    print()
-    print()
-    print(f'Received message on topic: {msg.topic} with payload: {msg.payload}')
-    currentMessage = msg.payload.decode()
+        # Log the message and get the parsed data and log entry
+        message_data, log_data = log_message(currentMessage, msg.topic)
 
-    # Log the message and get the parsed data and log entry
-    message_data, log_data = log_message(currentMessage, msg.topic)
+        # processAndSaveMqttData.delay(msg.payload)
 
-    # processAndSaveMqttData.delay(msg.payload)
+        # If the message is not a valid JSON, return after logging it
+        if message_data is None:
+            response = {
+                "status": "INVALID JSON",
+                "message": "The received message is not a valid JSON",
+                "timestamp": int(datetime.datetime.now().timestamp())
+            }
+            publish_response(mqtt_client,'', response, is_error=True)
+            return
+        
 
-    # If the message is not a valid JSON, return after logging it
-    if message_data is None:
-        response = {
-            "status": "INVALID JSON",
-            "message": "The received message is not a valid JSON",
-            "timestamp": int(datetime.datetime.now().timestamp())
-        }
-        publish_response(mqtt_client,'', response, is_error=True)
-        return
-    
+        # Extract device token and timestamp from the message
+        device_token = message_data.get('device_token', '')
+        timestamp = message_data.get('timestamp', int(datetime.datetime.now().timestamp()))
 
-    # Extract device token and timestamp from the message
-    device_token = message_data.get('device_token', '')
-    timestamp = message_data.get('timestamp', int(datetime.datetime.now().timestamp()))
-
-    
-    
-    
-    if 'cmd' in message_data and message_data['cmd'] == "TIMESTAMP" and device_token:
-        handle_command_message(mqtt_client, msg, message_data, log_data)
-    elif 'timestamp' in message_data and device_token and 'shift_no' in message_data:
-        machine_data_saved = handle_machine_data(mqtt_client, msg, message_data, log_data)
-        if machine_data_saved:
-            # args = {"mqtt_client":mqtt_client,"message_data":message_data,"log_data":log_data}
-            message_data['log_id'] = log_data.id
-            processAndSaveMqttData.delay(message_data)
-            # print (args)
-            # handle_production_data(mqtt_client, message_data, log_data)
-    else:
-        response = {
-            "status": "UNKNOWN FORMAT",
-            "message": "Received message format is not recognized",
-            "timestamp": timestamp
-        }
-        publish_response(mqtt_client, device_token, response, is_error=True)
+        
+        
+        
+        if 'cmd' in message_data and message_data['cmd'] == "TIMESTAMP" and device_token:
+            handle_command_message(mqtt_client, msg, message_data, log_data)
+        elif 'timestamp' in message_data and device_token and 'shift_no' in message_data:
+            machine_data_saved = handle_machine_data(mqtt_client, msg, message_data, log_data)
+            if machine_data_saved:
+                # args = {"mqtt_client":mqtt_client,"message_data":message_data,"log_data":log_data}
+                message_data['log_id'] = log_data.id
+                processAndSaveMqttData.delay(message_data)
+                # print (args)
+                # handle_production_data(mqtt_client, message_data, log_data)
+        else:
+            response = {
+                "status": "UNKNOWN FORMAT",
+                "message": "Received message format is not recognized",
+                "timestamp": timestamp
+            }
+            publish_response(mqtt_client, device_token, response, is_error=True)
+    except Exception as e:
+        print (e)
 
 
 def handle_command_message(mqtt_client, msg, message_data, log_data):
@@ -238,11 +240,23 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
     enable_printing = setting.enable_printing if setting else False
 
     timestamp = message_data['timestamp']
+    
+
+    # "PHR":18.0000,"PMIN":32.0000,"PSEC":16.0000
+    
     # dt = datetime.datetime.utcfromtimestamp(timestamp)
     dt = datetime.datetime.fromtimestamp(timestamp)
     message_date = dt.date()
     message_time = dt.time()
 
+    if 'PHR' in message_data and 'PMIN' in message_data and 'PSEC' in message_data:
+        plcHR = int(message_data['PHR'])
+        plcMIN = int(message_data['PMIN'])
+        plcSEC = int(message_data['PSEC'])
+        # print (plcHR,plcMIN,plcSEC)
+        message_time = datetime.time(plcHR,plcMIN,plcSEC)
+    
+    # print("time",message_time)
     device_token = message_data.get('device_token', '')
     errors = []
     
@@ -308,7 +322,7 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
         publish_response(mqtt_client, device_token, errors, is_error=True)
         return False
 
-    if DeviceData.objects.filter(timestamp=str(timestamp),device_id__device_token=device_token).exists(): #check this line sir 
+    if DeviceData.objects.filter(timestamp=str(timestamp),device_id__device_token=device_token).exists(): 
         errors.append({
             "status": "DUPLICATE TIMESTAMP",
             "message": "Duplicate timestamp found, data not saved.",

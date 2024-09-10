@@ -66,9 +66,9 @@ def processAndSaveMqttData(msg_data):
 def update_dashboard_data():
     # print ("Updating dashboard data...")
     
-    setting = Setting.objects.first()
+    # setting = Setting.objects.first()
     
-    today = datetime.datetime.now().date()
+    # today = datetime.datetime.now().date()
     currentTimeStamp = time.time()
     # production_data_today = ProductionData.objects.filter(date=today).order_by('timestamp')
 
@@ -206,6 +206,17 @@ def handle_production_data(message_data):
     dt = datetime.datetime.fromtimestamp(timestamp)
     message_date = dt.date()
     message_time = dt.time()
+
+    if 'PHR' in message_data and 'PMIN' in message_data and 'PSEC' in message_data:
+        plcHR = int(message_data['PHR'])
+        plcMIN = int(message_data['PMIN'])
+        plcSEC = int(message_data['PSEC'])
+        # print (plcHR,plcMIN,plcSEC)
+        message_time = datetime.time(plcHR,plcMIN,plcSEC)
+
+ 
+    
+    
     device_token = message_data['device_token']
     shift_number = message_data['shift_no']
     errors = []
