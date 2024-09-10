@@ -100,7 +100,7 @@ def publish_response(mqtt_client, device_token, response, is_error=False):
         publish_topic = mqtt_settings.pub_topic
 
         # Publish the response to the topic
-        result = mqtt_client.publish(publish_topic, json.dumps(response))
+        result = mqtt_client.publish(publish_topic+'/'+device_token, json.dumps(response))
         # if enable_printing:
         print()
         print(f"Response Published to {publish_topic}: {response}")
