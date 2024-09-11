@@ -13,8 +13,8 @@ from asgiref.sync import async_to_sync
 
 import datetime
 import time
-
-
+from django.utils import timezone
+from datetime import datetime, timedelta
 import django
 
 # Set the default Django settings module for the 'celery' program.
@@ -46,6 +46,7 @@ def processAndSaveMqttData(msg_data):
     # print ("Received Data-->",msg_data)
     handle_production_data(msg_data)
     update_dashboard_data()
+    send_production_updates()
     # print ("Finished...")
 
     # channel_layer = get_channel_layer()
@@ -178,6 +179,93 @@ def update_dashboard_data():
         
     # print (response_data)
     send_to_socket(response_data)
+
+def send_production_updates(date_str=None):
+    if date_str is None:
+        date_str = timezone.now().strftime('%Y-%m-%d')
+
+    try:
+        select_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        print(f"Invalid date format: {date_str}")
+        return
+
+    running_production_date = timezone.now().date()
+    production_data = {
+        'date': select_date.strftime('%Y-%m-%d'),
+        'data': []
+    }
+
+    for group in MachineGroup.objects.all():
+        group_json = {
+            'group_name': group.group_name,
+            'machines': []
+        }
+
+        for machine in group.machine_list.all():
+            machine_json = {
+                'machine_id': machine.machine_id,
+                'machine_name': machine.machine_name,
+                'shifts': []
+            }
+
+            all_production_data = ProductionData.objects.filter(
+                production_date=select_date, machine_id=machine.machine_id
+            ).order_by('timestamp')
+
+            total_shifts = ShiftTiming.objects.all()
+
+            for shift in total_shifts:
+                if shift.shift_number == 0:
+                    continue
+
+                shift_json = {
+                    'shift_no': shift.shift_number,
+                    'shift_name': shift.shift_name,
+                    'shift_start_time': shift.start_time.strftime('%H:%M:%S') if shift.start_time else None,
+                    'shift_end_time': shift.end_time.strftime('%H:%M:%S') if shift.end_time else None,
+                    'timing': {},
+                    'total_shift_production_count': 0
+                }
+
+                current_shift_production = all_production_data.filter(
+                    shift_number=shift.shift_number
+                )
+
+                count = 0
+                lastcount = 0
+
+                try:
+                    sub_data_first = current_shift_production.first()
+                    first_before_data = ProductionData.objects.filter(
+                        machine_id=machine.machine_id,
+                        timestamp__lt=sub_data_first.timestamp
+                    ).last()
+                    lastcount = first_before_data.production_count
+                except Exception as e:
+                    print(f"Error fetching previous data for machine {machine.machine_id}: {e}")
+
+                if current_shift_production:
+                    for pro_shift_data in current_shift_production:
+                        temp = pro_shift_data.production_count - lastcount
+                        count += temp if temp >= 0 else pro_shift_data.production_count
+                        lastcount = pro_shift_data.production_count
+
+                shift_json['total_shift_production_count'] = count
+
+                machine_json['shifts'].append(shift_json)
+
+            group_json['machines'].append(machine_json)
+
+        production_data['data'].append(group_json)
+
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        'production_updates', {
+            'type': 'send_message',
+            'message': production_data
+        }
+    )
 
 def send_to_socket(websocket_data):
     channel_layer = get_channel_layer()
