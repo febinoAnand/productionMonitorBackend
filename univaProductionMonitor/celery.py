@@ -14,7 +14,7 @@ from asgiref.sync import async_to_sync
 import datetime
 import time
 from django.utils import timezone
-from datetime import datetime, timedelta
+from datetime import datetime, time as datetime_time
 import django
 
 # Set the default Django settings module for the 'celery' program.
@@ -80,7 +80,7 @@ def update_dashboard_data():
 
     last_production_data = ProductionData.objects.order_by('-timestamp').first()
 
-    running_production_date = datetime.datetime.today().date()
+    running_production_date = datetime.today().date()
     try:
         running_shift = last_production_data.shift_number
         # running_production_date = last_production_data.production_date
@@ -291,7 +291,7 @@ def handle_production_data(message_data):
 
     timestamp = message_data['timestamp']
     # dt = datetime.datetime.utcfromtimestamp(timestamp)
-    dt = datetime.datetime.fromtimestamp(timestamp)
+    dt = datetime.fromtimestamp(timestamp)
     message_date = dt.date()
     message_time = dt.time()
 
@@ -300,7 +300,7 @@ def handle_production_data(message_data):
         plcMIN = int(message_data['PMIN'])
         plcSEC = int(message_data['PSEC'])
         # print (plcHR,plcMIN,plcSEC)
-        message_time = datetime.time(plcHR,plcMIN,plcSEC)
+        message_time = datetime_time(plcHR, plcMIN, plcSEC)
 
  
     

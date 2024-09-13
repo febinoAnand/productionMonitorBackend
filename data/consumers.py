@@ -66,7 +66,5 @@ class ProductionConsumer(WebsocketConsumer):
         )
 
     def send_message(self, event):
-        message = event['message']
-        self.send(text_data=json.dumps({
-            'message': message
-        }))
+        message = event.get('message', {})
+        self.send(text_data=json.dumps(message))
