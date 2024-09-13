@@ -190,10 +190,9 @@ def send_production_updates(date_str=None):
         print(f"Invalid date format: {date_str}")
         return
 
-    running_production_date = timezone.now().date()
     production_data = {
         'date': select_date.strftime('%Y-%m-%d'),
-        'data': []
+        'machine_groups': []
     }
 
     for group in MachineGroup.objects.all():
@@ -257,7 +256,7 @@ def send_production_updates(date_str=None):
 
             group_json['machines'].append(machine_json)
 
-        production_data['data'].append(group_json)
+        production_data['machine_groups'].append(group_json)
 
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
