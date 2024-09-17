@@ -1896,7 +1896,7 @@ class AchievementsViewSet(viewsets.ViewSet):
         start_date = end_date - timedelta(days=9)
 
         if enable_printing:
-           print("Date Range:", start_date, "to", end_date)
+            print("Date Range:", start_date, "to", end_date)
 
         machine_groups = MachineGroup.objects.all()
         output_json = {
@@ -1929,23 +1929,42 @@ class AchievementsViewSet(viewsets.ViewSet):
                         "total_production_count": 0
                     }
 
-                   
                     all_production_data = ProductionData.objects.filter(
                         production_date=single_date,
                         shift_number=shift.shift_number,
                         machine_id__in=[machine.machine_id for machine in group.machine_list.all()]
-                    )
+                    ).order_by('machine_id', 'id')
+                    machine_totals = {}
 
-                    total_production_count = all_production_data.aggregate(total_count=Sum('production_count'))['total_count'] or 0
+                    for data in all_production_data:
+                        machine_id = data.machine_id
+                        current_count = data.production_count
+                        if machine_id not in machine_totals:
+                            machine_totals[machine_id] = {
+                                "previous_count": 0,
+                                "total_count": 0
+                            }
+                        
+                        machine_data = machine_totals[machine_id]
+                        difference = current_count - machine_data["previous_count"]
+                        machine_data["total_count"] += difference
+                        machine_data["previous_count"] = current_count
 
-                    shift_json["total_production_count"] = total_production_count
+                    if enable_printing:
+                        print(f"Date: {single_date}, Shift: {shift.shift_name}")
+                        for machine_id, counts in machine_totals.items():
+                            print(f"Machine ID: {machine_id}, Total Production Count Difference: {counts['total_count']}")
+
+                    shift_json["total_production_count"] = sum(counts['total_count'] for counts in machine_totals.values())
                     date_json["shifts"].append(shift_json)
 
                 group_json["dates"].append(date_json)
 
             output_json["achievements"].append(group_json)
+
         if enable_printing:
-           print("Output JSON", output_json)
+            print("Output JSON", output_json)
+
         return Response(output_json, status=status.HTTP_200_OK)
 
 class IndividualShiftReportViewSet(viewsets.ViewSet):
