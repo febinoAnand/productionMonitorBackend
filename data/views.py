@@ -2221,7 +2221,7 @@ class IndividualShiftReportViewSet(viewsets.ViewSet):
             if next_datetime > end_datetime:
                 intervals.append([
                     (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:%S')),
-                    (end_datetime.strftime('%Y-%m-%d'), end_datetime.strftime('%H:%M:%S'))
+                    (next_datetime.strftime('%Y-%m-%d'), next_datetime.strftime('%H:%M:%S'))
                 ])
                 break
             intervals.append([
