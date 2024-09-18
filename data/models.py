@@ -125,3 +125,9 @@ class DashbaordData(models.Model):
     time = models.TimeField(auto_now=True)
     dashbaordData = models.JSONField()
 
+class ProductionUpdateData(models.Model):
+    timestamp = models.DateTimeField(default=timezone.now)
+    production_data = models.JSONField()
+
+    def __str__(self):
+        return f"ProductionUpdateData at {self.timestamp}"

@@ -24,7 +24,7 @@ django.setup()
 
 from configuration.models import Setting
 from django.conf import settings
-from data.models import LogData, DeviceData, MachineData,ProductionData, DashbaordData
+from data.models import LogData, DeviceData, MachineData,ProductionData, DashbaordData, ProductionUpdateData
 from devices.models import DeviceDetails, MachineDetails,ShiftTiming, MachineGroup
 
 
@@ -241,17 +241,18 @@ def send_production_updates(date_str=None):
                 count = 0
                 lastcount = 0
 
-                try:
-                    sub_data_first = current_shift_production.first()
-                    first_before_data = ProductionData.objects.filter(
-                        machine_id=machine.machine_id,
-                        timestamp__lt=sub_data_first.timestamp
-                    ).last()
-                    lastcount = first_before_data.production_count
-                except Exception as e:
-                    print(f"Error fetching previous data for machine {machine.machine_id}: {e}")
+                if current_shift_production.exists():
+                    try:
+                        sub_data_first = current_shift_production.first()
+                        if sub_data_first:
+                            first_before_data = ProductionData.objects.filter(
+                                machine_id=machine.machine_id,
+                                timestamp__lt=sub_data_first.timestamp
+                            ).last()
+                            lastcount = first_before_data.production_count if first_before_data else 0
+                    except Exception as e:
+                        print(f"Error fetching previous data for machine {machine.machine_id}: {e}")
 
-                if current_shift_production:
                     for pro_shift_data in current_shift_production:
                         temp = pro_shift_data.production_count - lastcount
                         count += temp if temp >= 0 else pro_shift_data.production_count
@@ -264,6 +265,11 @@ def send_production_updates(date_str=None):
             group_json['machines'].append(machine_json)
 
         production_data['machine_groups'].append(group_json)
+
+    try:
+        ProductionUpdateData.objects.create(production_data=production_data)
+    except Exception as e:
+        print(f"Error saving production update data: {e}")
 
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
