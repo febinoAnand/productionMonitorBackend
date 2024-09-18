@@ -917,8 +917,11 @@ class ProductionViewSet(viewsets.ViewSet):
         select_date = request.data.get('date')
         if not select_date:
             current_date = date.today()
-            current_time = datetime.now()
-            select_date = current_date - timedelta(days=1) if current_time > datetime.strptime("6:30","%H:%M")  else current_date
+            current_time = datetime.now().time()
+            if current_time < datetime.strptime("06:30", "%H:%M").time():
+                select_date = current_date - timedelta(days=1)
+            else:
+                select_date = current_date
             select_date = select_date.strftime('%Y-%m-%d')
             # return Response({"error": "Date is required. Please provide a date in YYYY-MM-DD format."}, status=status.HTTP_400_BAD_REQUEST)
 
