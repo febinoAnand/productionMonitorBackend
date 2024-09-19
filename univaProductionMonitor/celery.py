@@ -382,7 +382,7 @@ def handle_production_data(message_data):
 
                     production_data.save()
 
-                    print ("Production:",production_data.date,production_data.time,production_data.shift_number, production_data.machine_id, production_data.production_count, production_data.target_production,production_data.production_date)
+                    # print ("Production:",production_data.date,production_data.time,production_data.shift_number, production_data.machine_id, production_data.production_count, production_data.target_production,production_data.production_date)
 
                     if enable_printing:
                         print(f'Saved production data to database: {production_data}')

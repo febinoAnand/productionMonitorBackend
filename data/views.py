@@ -464,7 +464,7 @@ class ShiftReportViewSet(viewsets.ViewSet):
             date=parsed_date,
             machine_id=machine.machine_id,
         )
-        print("Production data for this date and machine:", production_data_all)
+        # print("Production data for this date and machine:", production_data_all)
         
         while current_time.time() < end_time:
             next_time = current_time + timedelta(hours=1)
