@@ -1423,25 +1423,27 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
             end_datetime += timedelta(days=1)
 
         while start_datetime < end_datetime:
-            next_datetime = start_datetime + timedelta(hours=1)
+            next_datetime = start_datetime + timedelta(hours=1) 
             if next_datetime > end_datetime:
                 intervals.append([
                     (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:%S')),
-                    (next_datetime.strftime('%Y-%m-%d'), next_datetime.strftime('%H:%M:%S'))
+                    (end_datetime.strftime('%Y-%m-%d'), end_datetime.strftime('%H:%M:%S'))
                 ])
                 break
             intervals.append([
                 (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:%S')),
                 (next_datetime.strftime('%Y-%m-%d'), next_datetime.strftime('%H:%M:%S'))
             ])
-            start_datetime = next_datetime
+            start_datetime = next_datetime 
 
         return intervals
-
-    def convert_to_12hr_format(self, time_24hr_str):
-        time_24hr = datetime.strptime(time_24hr_str, '%H:%M:%S')
-        time_12hr_str = time_24hr.strftime('%I:%M %p')
-        return time_12hr_str
+    
+    def convert_to_12hr_format(self, time_str):
+        try:
+            time_obj = datetime.strptime(time_str, '%H:%M:%S')
+            return time_obj.strftime('%I:%M %p')
+        except ValueError:
+            return time_str
 
 
 
