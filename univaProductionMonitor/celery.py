@@ -359,7 +359,7 @@ def handle_production_data(message_data):
             )
             shift_instance.save()
 
-        production_date = message_date - datetime.timedelta(days=1) if dt.time() < end_shift_time and shift_number == end_shift_number else message_date
+        production_date = message_date - timedelta(days=1) if dt.time() < end_shift_time and shift_number == end_shift_number else message_date
 
         try:
             if not last_production_data or last_production_data.shift_number != shift_instance.shift_number or last_production_data.target_production != machine.production_per_hour or last_production_data.production_count != production_count or last_production_data.production_date != production_date:
@@ -379,7 +379,7 @@ def handle_production_data(message_data):
                         log_data_id=message_data["log_id"],
                         timestamp=timestamp
                     )
-                    
+
                     production_data.save()
 
                     print ("Production:",production_data.date,production_data.time,production_data.shift_number, production_data.machine_id, production_data.production_count, production_data.target_production,production_data.production_date)
