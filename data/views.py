@@ -1390,9 +1390,9 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
                         pass
 
                     for data in sub_data:
-                        temp_count = data.production_count - last_inc_count
-                        count += temp_count if temp_count >= 0 else data.production_count
+                        count += max(0, data.production_count - last_inc_count)
                         last_inc_count = data.production_count
+                        print(f"last count -->{last_inc_count}")
                         target_production_count = data.target_production
 
                     if target_production_count > 0:
@@ -1403,6 +1403,9 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
                         shift_timing_list[self.convert_to_12hr_format(start_time) + " - " + self.convert_to_12hr_format(end_time)] = [0, last_target_production]
                     else:
                         shift_timing_list[self.convert_to_12hr_format(start_time) + " - " + self.convert_to_12hr_format(end_time)] = [count, target_production_count]
+
+                    if enable_printing:
+                        print(f"Interval: {start_time} - {end_time}, Count: {count}, Target: {target_production_count}")
 
                 shift_json["timing"] = shift_timing_list
 
