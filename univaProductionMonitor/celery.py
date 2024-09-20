@@ -85,15 +85,15 @@ def update_dashboard_data():
 
     all_groups = MachineGroup.objects.prefetch_related('machine_list').all()
 
-    last_production_data = ProductionData.objects.order_by('-timestamp').first()
+    last_production_data = ProductionData.objects.order_by('timestamp').last()
 
-    running_production_date = datetime.today().date()
+    # running_production_date = datetime.today().date()
     try:
         running_shift = last_production_data.shift_number
-        # running_production_date = last_production_data.production_date
+        running_production_date = last_production_data.production_date
     except:
         running_shift = 1
-        # running_production_date = datetime.today().date()
+        running_production_date = datetime.today().date()
 
     # running_shift = 1
     # running_production_date = date(2024,8,31)
@@ -124,7 +124,7 @@ def update_dashboard_data():
             count = 0
             lastcount = 0
             multiplyTraget = 0
-            current_production_data = ProductionData.objects.filter(date = running_production_date, shift_number = running_shift).order_by('timestamp')
+            current_production_data = ProductionData.objects.filter(production_date = running_production_date, shift_number = running_shift).order_by('timestamp')
             if current_production_data.exists():
                 sub_data_first = current_production_data.first()
                 multiplyTraget = math.ceil((currentTimeStamp - eval(sub_data_first.timestamp))/3600)
@@ -141,7 +141,7 @@ def update_dashboard_data():
                 first_before_data = ProductionData.objects.filter(
                     machine_id=machine.machine_id,
                     timestamp__lt=sub_data_first.timestamp
-                ).last()
+                ).order_by("timestamp").last()
                 lastcount = first_before_data.production_count
             except:
                 pass

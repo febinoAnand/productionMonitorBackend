@@ -1755,11 +1755,84 @@ class ShiftDataViewSet(viewsets.ViewSet):
         response_data = DashbaordData.objects.all().first().dashbaordData
 
         if not response_data:
+            # group_data = {}
+
+            # all_groups = MachineGroup.objects.prefetch_related('machine_list').all()
+
+            # running_shift = 1
+            # for group in all_groups:
+            #     group_id = group.id
+            #     group_name = group.group_name
+
+            #     if group_id not in group_data:
+            #         group_data[group_id] = {
+            #             'group_id': group_id,
+            #             'group_name': group_name,
+            #             'machine_count': len(group.machine_list.all()),
+            #             'running_shift':running_shift,
+            #             'machines': {},
+            #             'total_production_count': 0,
+            #             'total_target_production': 0,
+            #             'total_count_difference': 0
+            #         }
+
+            #     for machine in group.machine_list.all():
+            #         machine_id = machine.machine_id
+            #         machine_name = machine.machine_name
+            #         machine_target = machine.production_per_hour
+                    
+                    
+            #         count = 0
+            #         multiplyTraget = 0
+            #         group_data[group_id]['machines'][machine_id] = {
+            #             'machine_id': machine_id,
+            #             'machine_name': machine_name,
+            #             'production_count': count,
+            #             'target_production': machine_target * multiplyTraget,
+            #             'count_difference': 0,
+            #             'previous_production_count': 0
+            #         }
+
+            
+
+            # response_data = {
+            #     'groups': [
+            #         {
+            #             **group,
+            #             'machines': list(group['machines'].values())
+            #         }
+            #         for group in group_data.values()
+            #     ],
+            # }
+
+            # print ("Updating dashboard data...")
+    
+            # setting = Setting.objects.first()
+            
+            # today = datetime.datetime.now().date()
+            currentTimeStamp = time.time()
+            # production_data_today = ProductionData.objects.filter(date=today).order_by('timestamp')
+
+            
             group_data = {}
 
             all_groups = MachineGroup.objects.prefetch_related('machine_list').all()
 
-            running_shift = 1
+            last_production_data = ProductionData.objects.order_by('timestamp').last()
+
+            # running_production_date = datetime.today().date()
+            try:
+                running_shift = last_production_data.shift_number
+                running_production_date = last_production_data.production_date
+            except:
+                running_shift = 1
+                running_production_date = datetime.today().date()
+
+            # running_shift = 1
+            # running_production_date = date(2024,8,31)
+
+            # print(running_production_date, "--",running_shift)
+
             for group in all_groups:
                 group_id = group.id
                 group_name = group.group_name
@@ -1780,10 +1853,40 @@ class ShiftDataViewSet(viewsets.ViewSet):
                     machine_id = machine.machine_id
                     machine_name = machine.machine_name
                     machine_target = machine.production_per_hour
-                    
-                    
+                    # print("currenttime->",currentTimestamp)
                     count = 0
+                    lastcount = 0
                     multiplyTraget = 0
+                    current_production_data = ProductionData.objects.filter(production_date = running_production_date, shift_number = running_shift).order_by('timestamp')
+                    if current_production_data.exists():
+                        sub_data_first = current_production_data.first()
+                        multiplyTraget = math.ceil((currentTimeStamp - eval(sub_data_first.timestamp))/3600)
+                        if multiplyTraget > 8:
+                            multiplyTraget = 8
+                        # print (machine_name,"Mulitply Traget : ",currentTimeStamp, "-", sub_data_first.timestamp , "=",currentTimeStamp-eval(sub_data_first.timestamp),multiplyTraget)
+                        current_production_data = current_production_data.filter(machine_id=machine_id)
+
+                    
+
+                    try:
+                        
+                        sub_data_first = current_production_data.first()
+                        first_before_data = ProductionData.objects.filter(
+                            machine_id=machine.machine_id,
+                            timestamp__lt=sub_data_first.timestamp
+                        ).order_by("timestamp").last()
+                        lastcount = first_before_data.production_count
+                    except:
+                        pass
+
+
+                    if current_production_data:
+                        for pro_shift_data in current_production_data:
+                            temp = pro_shift_data.production_count - lastcount
+                            count += temp if temp >= 0 else pro_shift_data.production_count
+                            lastcount = pro_shift_data.production_count
+                        
+
                     group_data[group_id]['machines'][machine_id] = {
                         'machine_id': machine_id,
                         'machine_name': machine_name,
@@ -1792,8 +1895,6 @@ class ShiftDataViewSet(viewsets.ViewSet):
                         'count_difference': 0,
                         'previous_production_count': 0
                     }
-
-            
 
             response_data = {
                 'groups': [
@@ -1804,6 +1905,17 @@ class ShiftDataViewSet(viewsets.ViewSet):
                     for group in group_data.values()
                 ],
             }
+
+            try:
+                dashboardData = DashbaordData.objects.all().first()
+                if dashboardData:
+                    dashboardData.dashbaordData = response_data
+                    dashboardData.save()
+                else:
+                    DashbaordData.objects.create(dashbaordData = response_data)
+                    # print ("No data found...")
+            except Exception as e:
+                print (e)
 
         return Response(response_data)
 
