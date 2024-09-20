@@ -1342,7 +1342,7 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
                 shift_end_date = last_production_data.date
                 shift_end_time = last_production_data.time
 
-                shift_json["shift_end_time"] = str(shift_end_date) + " " + str(shift_end_time)
+                
 
                 try:
                     nextShiftEndData = ProductionData.objects.filter(timestamp__gt=last_production_data.timestamp, machine_id=machine_id).order_by('timestamp').first()
@@ -1360,6 +1360,7 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
                     str(next_shift_date),
                     str(next_shift_time)
                 )
+                print ("split-hours",split_hours)
 
                 last_inc_count = 0
                 target_production_count = 0
@@ -1370,16 +1371,17 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
                     target = 0
                     target_production_count = 0
 
+                    
+
                     start_date = start_end_datetime[0][0]
                     start_time = start_end_datetime[0][1]
 
                     end_date = start_end_datetime[1][0]
                     end_time = start_end_datetime[1][1]
 
-                    sub_data = current_shift_production.filter(
-                        date__gte=start_date, date__lte=end_date,
-                        time__gte=start_time, time__lte=end_time
-                    )
+                    shift_json["shift_end_time"] = str(end_date) + " " + str(end_time)
+
+                    sub_data = current_shift_production.filter(date__gte=start_date,date__lte=end_date).filter(time__gte=start_time,time__lte=end_time)
 
                     if end_date == shift_end_date.strftime("%Y-%m-%d") and end_time == shift_end_time.strftime("%H:%M:%S"):
                         sub_data = current_shift_production.filter(date__gte=start_date, date__lte=end_date).filter(time__gte=start_time, time__lte=end_time)
@@ -1405,7 +1407,7 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
                         last_inc_count = data.production_count
                         # print(f"last count -->{last_inc_count}")
                         target_production_count = data.target_production
-
+                    print()
                     if target_production_count > 0:
                         last_target_production = target_production_count  # Update last non-zero target production
 
@@ -2085,13 +2087,23 @@ class IndividualShiftReportViewSet(viewsets.ViewSet):
                 shift_end_date = last_production_data.date
                 shift_end_time = last_production_data.time
 
-                shift_json["shift_end_time"] = str(shift_end_date) + " " + str(shift_end_time)
+                # shift_json["shift_end_time"] = str(shift_end_date) + " " + str(shift_end_time)
 
-                split_hours = self.generate_hourly_intervals_with_dates(
+                try:
+                    nextShiftEndData = ProductionData.objects.filter(timestamp__gt=last_production_data.timestamp, machine_id=machine_id).order_by('timestamp').first()
+                    next_shift_date = nextShiftEndData.date
+                    next_shift_time = nextShiftEndData.time
+                except Exception as e:
+                    next_shift_date = ""
+                    next_shift_time = ""
+                    print ("Not found next shift data")
+
+
+                split_hours = self.generate_hourly_intervals_with_dates_shift(
                     str(shift_start_date),
-                    str(shift_end_date),
                     str(shift_start_time),
-                    str(shift_end_time)
+                    str(next_shift_date),
+                    str(next_shift_time)
                 )
 
                 last_inc_count = 0
@@ -2108,6 +2120,8 @@ class IndividualShiftReportViewSet(viewsets.ViewSet):
 
                     end_date = start_end_datetime[1][0]
                     end_time = start_end_datetime[1][1]
+
+                    shift_json["shift_end_time"] = str(end_date) + " " + str(end_time)
 
                     sub_data = machine_production_data_by_shift.filter(
                         date__gte=start_date, date__lte=end_date,
@@ -2297,6 +2311,52 @@ class IndividualShiftReportViewSet(viewsets.ViewSet):
             output_json["machines"].append(machine_details)
 
         return Response(output_json, status=status.HTTP_200_OK)
+    
+
+    def generate_hourly_intervals_with_dates_shift(self,from_date, start_time, shift_date, shift_time):
+        start_datetime = datetime.strptime(f"{from_date} {start_time}", '%Y-%m-%d %H:%M:%S')
+        
+        
+        max_end_datetime = start_datetime + timedelta(hours=8)
+        
+        try:
+            shift_datetime = datetime.strptime(f"{shift_date} {shift_time}", '%Y-%m-%d %H:%M:%S')
+            end_datetime = min(max_end_datetime, shift_datetime)
+        except Exception as e:
+            end_datetime = max_end_datetime
+            
+        current_time = datetime.now()
+        
+        intervals = []
+        
+        
+        while start_datetime < end_datetime:
+            next_datetime = start_datetime + timedelta(hours=1)
+            
+        
+            if next_datetime > current_time:
+                intervals.append([
+                    (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:%S')),
+                    (current_time.strftime('%Y-%m-%d'), current_time.strftime('%H:%M:%S'))
+                ])
+                break
+            
+        
+            if next_datetime > end_datetime:
+                intervals.append([
+                    (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:%S')),
+                    (end_datetime.strftime('%Y-%m-%d'), end_datetime.strftime('%H:%M:%S'))
+                ])
+                break
+            
+            intervals.append([
+                (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:%S')),
+                (next_datetime.strftime('%Y-%m-%d'), next_datetime.strftime('%H:%M:%S'))
+            ])
+            start_datetime = next_datetime
+
+        return intervals
+    
 
     def generate_hourly_intervals_with_dates(self, from_date, to_date, start_time, end_time):
         start_datetime = datetime.strptime(f"{from_date} {start_time}", '%Y-%m-%d %H:%M:%S')
