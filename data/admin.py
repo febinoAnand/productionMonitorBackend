@@ -56,9 +56,9 @@ class MachineDataAdmin(admin.ModelAdmin):
     list_filter = ('date', 'machine_id__machine_id', 'device_id__device_token')
 
 class ProductionDataAdmin(admin.ModelAdmin):
-    list_display = ( 'date', 'time','shift_number', 'machine_name', 'production_count', 'target_production','production_date')
-    search_fields = ('shift_name', 'machine_id','machine_name')
-    list_filter = ('date','time','shift_number','machine_name','production_date')
+    list_display = ( 'date', 'time','shift_number', 'machine_name', 'production_count', 'target_production','production_date','timestamp')
+    search_fields = ('date','shift_name', 'machine_id','machine_name','timestamp','production_date')
+    list_filter = ('date','time','shift_number','machine_name','production_date',)
 
 class DashbaordDataAdmin(admin.ModelAdmin):
     list_display = ('date','time','dashbaordData')

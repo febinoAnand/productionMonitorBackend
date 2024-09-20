@@ -2160,6 +2160,13 @@ class IndividualShiftReportViewSet(viewsets.ViewSet):
         searchDate = res_data['date']
         machine_id = res_data['machine_id']
 
+        try:
+            # getting last data for current production date
+            last_production_data = ProductionData.objects.all().order_by("timestamp").last()
+            searchDate = last_production_data.production_date
+        except Exception as e:
+            searchDate = res_data['date']
+
         machineDetails = MachineDetails.objects.get(machine_id = machine_id)
 
         if not machineDetails:
