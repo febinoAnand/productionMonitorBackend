@@ -1382,11 +1382,12 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
                     shift_json["shift_end_time"] = str(end_date) + " " + str(end_time)
 
                     
-                    sub_data = current_shift_production.filter(date__gte=start_date,date__lte=end_date).filter(time__gte=start_time,time__lte=end_time)
+                    
 
                     if start_time > end_time:
                         sub_data = current_shift_production.filter( Q(date__gte=start_date,time__gte=start_time) | Q(date__lte=end_date,time__lte=end_time))
-
+                    else:
+                        sub_data = current_shift_production.filter(date__gte=start_date,date__lte=end_date).filter(time__gte=start_time,time__lte=end_time)
                     # if end_date == shift_end_date.strftime("%Y-%m-%d") and end_time == shift_end_time.strftime("%H:%M:%S"):
                     #     sub_data = current_shift_production.filter(date__gte=start_date, date__lte=end_date).filter(time__gte=start_time, time__lte=end_time)
 
@@ -2246,13 +2247,18 @@ class IndividualShiftReportViewSet(viewsets.ViewSet):
 
                     shift_json["shift_end_time"] = str(end_date) + " " + str(end_time)
 
-                    sub_data = machine_production_data_by_shift.filter(
-                        date__gte=start_date, date__lte=end_date,
-                        time__gte=start_time, time__lte=end_time
-                    )
+                    # sub_data = machine_production_data_by_shift.filter(
+                    #     date__gte=start_date, date__lte=end_date,
+                    #     time__gte=start_time, time__lte=end_time
+                    # )
 
-                    if end_date == shift_end_date.strftime("%Y-%m-%d") and end_time == shift_end_time.strftime("%H:%M:%S"):
-                        sub_data = machine_production_data_by_shift.filter(date__gte=start_date, date__lte=end_date).filter(time__gte=start_time, time__lte=end_time)
+                    if start_time > end_time:
+                        sub_data = machine_production_data_by_shift.filter( Q(date__gte=start_date,time__gte=start_time) | Q(date__lte=end_date,time__lte=end_time))
+                    else:
+                        sub_data = machine_production_data_by_shift.filter(date__gte=start_date,date__lte=end_date).filter(time__gte=start_time,time__lte=end_time)
+
+                    # if end_date == shift_end_date.strftime("%Y-%m-%d") and end_time == shift_end_time.strftime("%H:%M:%S"):
+                    #     sub_data = machine_production_data_by_shift.filter(date__gte=start_date, date__lte=end_date).filter(time__gte=start_time, time__lte=end_time)
 
                     try:
                         sub_data_first = sub_data.first()
