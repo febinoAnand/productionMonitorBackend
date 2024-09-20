@@ -1360,7 +1360,7 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
                     str(next_shift_date),
                     str(next_shift_time)
                 )
-                print ("split-hours",split_hours)
+                # print ("split-hours",split_hours)
 
                 last_inc_count = 0
                 target_production_count = 0
@@ -1381,10 +1381,14 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
 
                     shift_json["shift_end_time"] = str(end_date) + " " + str(end_time)
 
+                    
                     sub_data = current_shift_production.filter(date__gte=start_date,date__lte=end_date).filter(time__gte=start_time,time__lte=end_time)
 
-                    if end_date == shift_end_date.strftime("%Y-%m-%d") and end_time == shift_end_time.strftime("%H:%M:%S"):
-                        sub_data = current_shift_production.filter(date__gte=start_date, date__lte=end_date).filter(time__gte=start_time, time__lte=end_time)
+                    if start_time > end_time:
+                        sub_data = current_shift_production.filter( Q(date__gte=start_date,time__gte=start_time) | Q(date__lte=end_date,time__lte=end_time))
+
+                    # if end_date == shift_end_date.strftime("%Y-%m-%d") and end_time == shift_end_time.strftime("%H:%M:%S"):
+                    #     sub_data = current_shift_production.filter(date__gte=start_date, date__lte=end_date).filter(time__gte=start_time, time__lte=end_time)
 
                     try:
                         sub_data_first = sub_data.first()
@@ -1395,7 +1399,7 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
                         
                         if enable_printing:
                         # Debugging: Check first_before_data values
-                          print("First before data:", first_before_data.production_count, first_before_data.target_production)
+                            print("First before data:", first_before_data.production_count, first_before_data.target_production)
                         
                         last_inc_count = first_before_data.production_count
                         # last_inc_target = first_before_data.target_production
@@ -1407,7 +1411,7 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
                         last_inc_count = data.production_count
                         # print(f"last count -->{last_inc_count}")
                         target_production_count = data.target_production
-                    print()
+                    # print(start_date,start_time,"-",end_date,end_time,count)
                     if target_production_count > 0:
                         last_target_production = target_production_count  # Update last non-zero target production
 
