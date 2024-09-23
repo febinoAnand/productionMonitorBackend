@@ -933,6 +933,12 @@ class ProductionViewSet(viewsets.ViewSet):
         if enable_printing:
             print("Selected Date:", select_date)
 
+        existing_data = ProductionUpdateData.objects.filter(date=select_date).first()
+        if existing_data:
+            if enable_printing:
+                print("Returning existing production data for the selected date.")
+            return Response(existing_data.production_data, status=status.HTTP_200_OK)
+
         machine_groups = MachineGroup.objects.all()
         output_json = {
             "date": select_date.strftime('%Y-%m-%d'),
@@ -1086,6 +1092,14 @@ class ProductionViewSet(viewsets.ViewSet):
                 group_json["machines"].append(machine_json)
 
             output_json["machine_groups"].append(group_json)
+
+        try:
+            ProductionUpdateData.objects.create(
+                date=select_date,
+                production_data=output_json
+            )
+        except Exception as e:
+            return Response({"error": f"Error saving production data: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         if enable_printing:
             print("Output JSON", output_json)
