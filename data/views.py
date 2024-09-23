@@ -1405,13 +1405,15 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
 
                     
                     
-
+                    # if start time is greater than end time, means next day changed. below condition will sort the data
                     if start_time > end_time:
-                        sub_data = current_shift_production.filter( Q(date__gte=start_date,time__gte=start_time) | Q(date__lte=end_date,time__lte=end_time))
+                        sub_data = current_shift_production.filter( Q(date__gte=start_date,time__gte=start_time) | Q(date__lte=end_date,time__lt=end_time))
                     else:
-                        sub_data = current_shift_production.filter(date__gte=start_date,date__lte=end_date).filter(time__gte=start_time,time__lte=end_time)
-                    # if end_date == shift_end_date.strftime("%Y-%m-%d") and end_time == shift_end_time.strftime("%H:%M:%S"):
-                    #     sub_data = current_shift_production.filter(date__gte=start_date, date__lte=end_date).filter(time__gte=start_time, time__lte=end_time)
+                        sub_data = current_shift_production.filter(date__gte=start_date,date__lte=end_date).filter(time__gte=start_time,time__lt=end_time)
+                    
+
+                    if end_date == shift_end_date.strftime("%Y-%m-%d") and end_time == shift_end_time.strftime("%H:%M:%S"):
+                        sub_data = current_shift_production.filter(date__gte=start_date, date__lte=end_date).filter(time__gte=start_time, time__lte=end_time)
 
                     try:
                         sub_data_first = sub_data.first()
@@ -1478,22 +1480,22 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
         
             if next_datetime > current_time:
                 intervals.append([
-                    (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:%S')),
-                    (current_time.strftime('%Y-%m-%d'), current_time.strftime('%H:%M:%S'))
+                    (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:00')),
+                    (current_time.strftime('%Y-%m-%d'), current_time.strftime('%H:%M:00'))
                 ])
                 break
             
         
             if next_datetime > end_datetime:
                 intervals.append([
-                    (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:%S')),
-                    (end_datetime.strftime('%Y-%m-%d'), end_datetime.strftime('%H:%M:%S'))
+                    (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:00')),
+                    (end_datetime.strftime('%Y-%m-%d'), end_datetime.strftime('%H:%M:00'))
                 ])
                 break
             
             intervals.append([
-                (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:%S')),
-                (next_datetime.strftime('%Y-%m-%d'), next_datetime.strftime('%H:%M:%S'))
+                (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:00')),
+                (next_datetime.strftime('%Y-%m-%d'), next_datetime.strftime('%H:%M:00'))
             ])
             start_datetime = next_datetime
 
