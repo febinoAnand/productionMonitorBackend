@@ -126,8 +126,8 @@ class DashbaordData(models.Model):
     dashbaordData = models.JSONField()
 
 class ProductionUpdateData(models.Model):
-    timestamp = models.DateTimeField(default=timezone.now)
+    date = models.DateField(auto_now=True)
     production_data = models.JSONField()
 
     def __str__(self):
-        return f"ProductionUpdateData at {self.timestamp}"
+        return f"ProductionUpdateData at {self.date}"

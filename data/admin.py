@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.http import HttpRequest
 from .models import RawData,ProblemData,LastProblemData
-from .models import LogData, DeviceData, ProductionData, DashbaordData
+from .models import LogData, DeviceData, ProductionData, DashbaordData, ProductionUpdateData
 # Register your models here.
 # class RawDataAdmin(admin.ModelAdmin):
 #     list_display = ["datetime", "data"]
@@ -69,6 +69,9 @@ class DashbaordDataAdmin(admin.ModelAdmin):
     # def has_delete_permission(self, request):
     #     return False
 
+class ProductionUpdateDataAdmin(admin.ModelAdmin):
+    list_display = ('date','production_data')
+
 
 
 admin.site.register(LogData, LogDataAdmin)
@@ -76,6 +79,7 @@ admin.site.register(DeviceData, DeviceDataAdmin)
 # admin.site.register(MachineData, MachineDataAdmin)
 admin.site.register(ProductionData, ProductionDataAdmin)
 admin.site.register(DashbaordData, DashbaordDataAdmin)
+admin.site.register(ProductionUpdateData, ProductionUpdateDataAdmin)
 # admin.site.register(RawData,RawDataAdmin)
 # admin.site.register(ProblemData,ProblemDataAdmin)
 # admin.site.register(LastProblemData,LastProblemDataAdmin)

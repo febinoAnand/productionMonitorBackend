@@ -267,7 +267,13 @@ def send_production_updates(date_str=None):
         production_data['machine_groups'].append(group_json)
 
     try:
-        ProductionUpdateData.objects.create(production_data=production_data)
+        production_update, created = ProductionUpdateData.objects.get_or_create(
+            date=select_date,
+            defaults={'production_data': production_data}
+        )
+        if not created:
+            production_update.production_data = production_data
+            production_update.save()
     except Exception as e:
         print(f"Error saving production update data: {e}")
 
