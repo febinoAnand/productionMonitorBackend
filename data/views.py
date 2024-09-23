@@ -1094,10 +1094,18 @@ class ProductionViewSet(viewsets.ViewSet):
             output_json["machine_groups"].append(group_json)
 
         try:
-            ProductionUpdateData.objects.create(
-                date=select_date,
-                production_data=output_json
-            )
+            if existing_data:
+                existing_data.production_data = output_json
+                existing_data.save()
+                if enable_printing:
+                    print("Updated existing production data.")
+            else:
+                ProductionUpdateData.objects.create(
+                    date=select_date,
+                    production_data=output_json
+                )
+                if enable_printing:
+                    print("Created new production data.")
         except Exception as e:
             return Response({"error": f"Error saving production data: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

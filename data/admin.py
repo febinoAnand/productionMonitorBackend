@@ -70,7 +70,7 @@ class DashbaordDataAdmin(admin.ModelAdmin):
     #     return False
 
 class ProductionUpdateDataAdmin(admin.ModelAdmin):
-    list_display = ('date','production_data')
+    list_display = ('date','time','production_data')
 
 
 

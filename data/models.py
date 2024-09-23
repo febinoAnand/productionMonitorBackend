@@ -126,7 +126,7 @@ class DashbaordData(models.Model):
     dashbaordData = models.JSONField()
 
 class ProductionUpdateData(models.Model):
-    date = models.DateField(auto_now=True)
+    date = models.DateField()
     time = models.TimeField(auto_now=True)
     production_data = models.JSONField()
 
