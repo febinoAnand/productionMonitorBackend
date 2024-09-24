@@ -22,11 +22,13 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
 
 urlpatterns = [
+    # path('privacy',)
     path('admin/', admin.site.urls),
     path('config/', include('configuration.urls')),
     path('data/', include('data.urls')),
     path('devices/', include('devices.urls')),
     path('smsgateway/', include('smsgateway.urls')),
+    path('privacy/',include('privacy.urls')),
 
     path('pushnotification/', include('pushnotification.urls')),
 

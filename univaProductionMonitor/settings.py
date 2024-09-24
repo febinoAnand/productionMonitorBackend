@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'Userauth',
     'rest_framework.authtoken',
     'mqttConnection',
+    'privacy',
    
 
     # 'django_extensions',
