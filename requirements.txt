@@ -67,3 +67,4 @@ wcwidth==0.2.13
 yarg==0.1.9
 yarl==1.9.4
 zope.interface==6.1
+psycopg2-binary==2.9.9
