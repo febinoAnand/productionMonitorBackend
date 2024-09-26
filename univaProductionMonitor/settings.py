@@ -196,3 +196,4 @@ CSRF_TRUSTED_ORIGINS = ['https://*.127.0.0.1','https://productionb.univa.cloud',
 
 END_SHIFT_TIME = datetime.time(7,0) # Example end time
 END_SHIFT_NUMBER = 3                # Example shift number
+MACHINE_OFFLINE_TIME = 30 * 60  # 30 minutes in seconds

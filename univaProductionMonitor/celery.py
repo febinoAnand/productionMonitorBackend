@@ -73,6 +73,7 @@ def processAndSaveMqttData(msg_data):
 
 def update_dashboard_data():
     # print ("Updating dashboard data...")
+    MACHINE_OFFLINE_TIME = settings.MACHINE_OFFLINE_TIME
     
     # setting = Setting.objects.first()
     
@@ -152,11 +153,28 @@ def update_dashboard_data():
                     temp = pro_shift_data.production_count - lastcount
                     count += temp if temp >= 0 else pro_shift_data.production_count
                     lastcount = pro_shift_data.production_count
-                
+
+                first_production_count = current_production_data.first().production_count
+                current_production_count = count
+
+                if current_production_count == first_production_count:
+                    time_difference = currentTimeStamp - eval(sub_data_first.timestamp)
+                    if time_difference > MACHINE_OFFLINE_TIME:
+                        status = 1
+                        print(f"Machine {machine_name} status changed to offline.")
+                    else:
+                        status = 0
+                        print(f"Machine {machine_name} status changed to online.")
+                else:
+                    status = 0
+                    print(f"Machine {machine_name} status changed to online.")
+
+                machine.save()
 
             group_data[group_id]['machines'][machine_id] = {
                 'machine_id': machine_id,
                 'machine_name': machine_name,
+                'status': status,
                 'production_count': count,
                 'target_production': machine_target * multiplyTraget,
                 'count_difference': 0,
