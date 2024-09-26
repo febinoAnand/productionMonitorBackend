@@ -1881,6 +1881,7 @@ class ShiftDataViewSet(viewsets.ViewSet):
                 for machine in group.machine_list.all():
                     machine_id = machine.machine_id
                     machine_name = machine.machine_name
+                    status = machine.status
                     machine_target = machine.production_per_hour
                     # print("currenttime->",currentTimestamp)
                     count = 0
@@ -1919,6 +1920,7 @@ class ShiftDataViewSet(viewsets.ViewSet):
                     group_data[group_id]['machines'][machine_id] = {
                         'machine_id': machine_id,
                         'machine_name': machine_name,
+                        'status': status,
                         'production_count': count,
                         'target_production': machine_target * multiplyTraget,
                         'count_difference': 0,
@@ -2206,6 +2208,7 @@ class IndividualShiftReportViewSet(viewsets.ViewSet):
             "date":searchDate,
             "machine_id": machineDetails.machine_id,
             "machine_name": machineDetails.machine_name,
+            "status": machineDetails.status,
             "shifts": []
         }
 
@@ -2344,9 +2347,11 @@ class IndividualShiftReportViewSet(viewsets.ViewSet):
             machine_id = data.machine_id
             machine_name = data.machine_name
             if machine_id not in machines_details:
+                machine_status = MachineDetails.objects.get(machine_id=machine_id).status
                 machines_details[machine_id] = {
                     "machine_id": machine_id,
                     "machine_name": machine_name,
+                    "status": machine_status,
                     "shifts_data": {},
                     "shifts": []
                 }
