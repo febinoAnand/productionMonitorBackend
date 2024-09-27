@@ -161,13 +161,13 @@ def update_dashboard_data():
                     time_difference = currentTimeStamp - eval(sub_data_first.timestamp)
                     if time_difference > MACHINE_OFFLINE_TIME:
                         status = 1
-                        print(f"Machine {machine_name} status changed to offline.")
+                        # print(f"Machine {machine_name} status changed to offline.")
                     else:
                         status = 0
-                        print(f"Machine {machine_name} status changed to online.")
+                        # print(f"Machine {machine_name} status changed to online.")
                 else:
                     status = 0
-                    print(f"Machine {machine_name} status changed to online.")
+                    # print(f"Machine {machine_name} status changed to online.")
 
                 machine.save()
 
@@ -212,7 +212,7 @@ def send_production_updates(date_str=None):
     try:
         select_date = datetime.strptime(date_str, '%Y-%m-%d').date()
     except ValueError:
-        print(f"Invalid date format: {date_str}")
+        # print(f"Invalid date format: {date_str}")
         return
 
     production_data = {
