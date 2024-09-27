@@ -255,28 +255,14 @@ def send_production_updates(date_str=None):
                 current_shift_production = all_production_data.filter(
                     shift_number=shift.shift_number
                 )
-
-                count = 0
-                lastcount = 0
+                
+                max_production_count = 0
 
                 if current_shift_production.exists():
-                    try:
-                        sub_data_first = current_shift_production.first()
-                        if sub_data_first:
-                            first_before_data = ProductionData.objects.filter(
-                                machine_id=machine.machine_id,
-                                timestamp__lt=sub_data_first.timestamp
-                            ).last()
-                            lastcount = first_before_data.production_count if first_before_data else 0
-                    except Exception as e:
-                        print(f"Error fetching previous data for machine {machine.machine_id}: {e}")
-
                     for pro_shift_data in current_shift_production:
-                        temp = pro_shift_data.production_count - lastcount
-                        count += temp if temp >= 0 else pro_shift_data.production_count
-                        lastcount = pro_shift_data.production_count
-
-                shift_json['total_shift_production_count'] = count
+                        if pro_shift_data.production_count > max_production_count:
+                            max_production_count = pro_shift_data.production_count
+                shift_json['total_shift_production_count'] = max_production_count
 
                 machine_json['shifts'].append(shift_json)
 

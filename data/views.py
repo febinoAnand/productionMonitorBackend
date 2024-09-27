@@ -978,30 +978,14 @@ class ProductionViewSet(viewsets.ViewSet):
                     }
 
                     current_shift_production = all_production_data.filter(shift_number=shift.shift_number)
-                    # if enable_printing:
-                    # print("Current Shift Production for Shift Number", shift.shift_number, ":", current_shift_production)
-                    # print 
-                    # print
 
-                    
+                    max_production_count = 0
 
-                    count = 0
-                    lastcount = 0
-                    try:
-                        sub_data_first = current_shift_production.first()
-                        first_before_data = ProductionData.objects.filter(
-                            machine_id=machine.machine_id,
-                            timestamp__lt=sub_data_first.timestamp
-                        ).last()
-                        lastcount = first_before_data.production_count
-                    except:
-                        pass
                     if current_shift_production:
                         for pro_shift_data in current_shift_production:
-                            temp = pro_shift_data.production_count - lastcount
-                            count += temp if temp >= 0 else pro_shift_data.production_count
-                            lastcount = pro_shift_data.production_count
-                    shift_json["total_shift_production_count"] = count
+                            if pro_shift_data.production_count > max_production_count:
+                                max_production_count = pro_shift_data.production_count
+                    shift_json["total_shift_production_count"] = max_production_count
                     
                     # if current_shift_production:
                     #     sub_data_first = current_shift_production.first()
