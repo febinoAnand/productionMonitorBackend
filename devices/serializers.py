@@ -108,4 +108,4 @@ class MachineGroupSerializer(serializers.ModelSerializer):
 class ShiftTimingSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShiftTiming
-        fields = ['shift_number', 'start_time', 'end_time', 'shift_name', 'create_date_time', 'update_date_time']
+        fields = ['id','shift_number', 'start_time', 'end_time', 'shift_name', 'create_date_time', 'update_date_time']
