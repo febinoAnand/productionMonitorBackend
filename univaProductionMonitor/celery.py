@@ -9,7 +9,7 @@ import math
 from django.shortcuts import get_object_or_404
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-
+from django.db.models import Max
 
 import datetime
 import time
@@ -252,17 +252,17 @@ def send_production_updates(date_str=None):
                     'total_shift_production_count': 0
                 }
 
-                current_shift_production = all_production_data.filter(
-                    shift_number=shift.shift_number
-                )
-                
-                max_production_count = 0
+                current_shift_production = ProductionData.objects.filter(
+                        production_date=select_date, 
+                        shift_number=shift.shift_number, 
+                        machine_id=machine.machine_id
+                    ).order_by('timestamp')
 
+                max_production_count = 0
                 if current_shift_production.exists():
-                    for pro_shift_data in current_shift_production:
-                        if pro_shift_data.production_count > max_production_count:
-                            max_production_count = pro_shift_data.production_count
-                shift_json['total_shift_production_count'] = max_production_count
+                    max_production_count = current_shift_production.aggregate(max_count=Max('production_count'))['max_count']
+                    
+                shift_json["total_shift_production_count"] = max_production_count
 
                 machine_json['shifts'].append(shift_json)
 

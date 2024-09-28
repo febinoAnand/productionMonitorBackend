@@ -56,7 +56,7 @@ class MachineDetailsAdmin(admin.ModelAdmin):
 
 
 class ShiftTimingAdmin(admin.ModelAdmin):
-    list_display = ('shift_number','shift_name', 'start_time', 'end_time', 'create_date_time')
+    list_display = ('shift_number','shift_name', 'start_time', 'end_time', 'start_hours', 'create_date_time')
     search_fields = ('shift_name',)
     list_filter = ('shift_number', 'shift_name', 'create_date_time')
 

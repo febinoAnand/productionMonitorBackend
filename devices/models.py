@@ -91,10 +91,11 @@ class ShiftTimings(models.Model):
         return str(self.shift_number)  # Convert to string
 
 class ShiftTiming(models.Model):
-    id=models.AutoField(primary_key=True, default=1)
+    id = models.AutoField(primary_key=True)
     shift_number = models.IntegerField(blank=False, null=False ,default=1)  # Required field
     start_time = models.TimeField(blank=True, null=True)  # Optional field
     end_time = models.TimeField(blank=True, null=True)  # Optional field
+    start_hours = models.TimeField(blank=True, null=True)  # Optional field
     shift_name = models.CharField(max_length=45, blank=True, null=True)  # Optional field
     create_date_time = models.DateTimeField(auto_now_add=True)
     update_date_time = models.DateTimeField(auto_now=True)

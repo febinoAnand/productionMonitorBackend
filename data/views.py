@@ -977,14 +977,16 @@ class ProductionViewSet(viewsets.ViewSet):
                         "total_shift_production_count": 0
                     }
 
-                    current_shift_production = all_production_data.filter(shift_number=shift.shift_number)
+                    current_shift_production = ProductionData.objects.filter(
+                        production_date=select_date, 
+                        shift_number=shift.shift_number, 
+                        machine_id=machine.machine_id
+                    ).order_by('timestamp')
 
                     max_production_count = 0
-
-                    if current_shift_production:
-                        for pro_shift_data in current_shift_production:
-                            if pro_shift_data.production_count > max_production_count:
-                                max_production_count = pro_shift_data.production_count
+                    if current_shift_production.exists():
+                        max_production_count = current_shift_production.aggregate(max_count=Max('production_count'))['max_count']
+                    
                     shift_json["total_shift_production_count"] = max_production_count
                     
                     # if current_shift_production:
