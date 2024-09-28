@@ -248,14 +248,6 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
     dt = datetime.datetime.fromtimestamp(timestamp)
     message_date = dt.date()
     message_time = dt.time()
-
-    if 'PHR' in message_data and 'PMIN' in message_data and 'PSEC' in message_data:
-        plcHR = int(message_data['PHR'])
-        plcMIN = int(message_data['PMIN'])
-        plcSEC = int(message_data['PSEC'])
-        # print (plcHR,plcMIN,plcSEC)
-        message_time = datetime.time(plcHR,plcMIN,plcSEC)
-    
     # print("time",message_time)
     device_token = message_data.get('device_token', '')
     errors = []
@@ -333,6 +325,18 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
            print('Duplicate timestamp found, data not saved.')
         publish_response(mqtt_client, device_token, errors, is_error=True)
         return False
+    
+    if 'PHR' in message_data and 'PMIN' in message_data and 'PSEC' in message_data:
+        plcHR = int(message_data['PHR'])
+        plcMIN = int(message_data['PMIN'])
+        plcSEC = int(message_data['PSEC'])
+        message_time = datetime.time(plcHR, plcMIN, plcSEC)
+    else:
+        if deviceFirstData:
+            previous_timestamp = deviceFirstData.data['timestamp']
+            message_time = datetime.datetime.fromtimestamp(previous_timestamp).time()
+        else:
+            message_time = datetime.datetime.now().time()
 
     # for key, value in message_data.items():
     #     if key in ['timestamp', 'device_token', 'cmd', 'shift_no']:
