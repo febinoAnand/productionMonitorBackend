@@ -1298,6 +1298,7 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
 
 class HourlyShiftReportViewSet(viewsets.ViewSet):
     def create(self, request):
+        last_target_production = 0
         setting = Setting.objects.first()
         enable_printing = setting.enable_printing if setting else False
 
@@ -1308,7 +1309,7 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
             return Response({"error": "Both 'date' and 'machine_id' are required."}, status=status.HTTP_400_BAD_REQUEST)
 
         select_date = datetime.strptime(select_date, '%Y-%m-%d').date()
-        machine = MachineDetails.objects.get(machine_id = machine_id)
+        machine = MachineDetails.objects.filter(machine_id=machine_id).first()
         if not machine:
             return Response({"error": "Machine Not found"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1338,35 +1339,20 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
             current_shift_production = all_production_data.filter(shift_number=shift.shift_number)
 
             if current_shift_production.exists():
-                first_production_data = current_shift_production.first()
-                last_production_data = current_shift_production.last()
+                shift_json["shift_start_time"] = str(select_date) + " " + str(shift.start_time)
+                shift_json["shift_end_time"] = str(select_date) + " " + str(shift.end_time)
 
-                
-                shift_start_date = first_production_data.date
-                shift_start_time = first_production_data.time
-
-                shift_json["shift_start_time"] = str(shift_start_date) + " " + str(shift_start_time)
-
-                shift_end_date = last_production_data.date
-                shift_end_time = last_production_data.time
-
-                
-
-                try:
-                    nextShiftEndData = ProductionData.objects.filter(timestamp__gt=last_production_data.timestamp, machine_id=machine_id).order_by('timestamp').first()
-                    next_shift_date = nextShiftEndData.date
-                    next_shift_time = nextShiftEndData.time
-                except Exception as e:
-                    next_shift_date = ""
-                    next_shift_time = ""
-                    print ("Not found next shift data")
-
+                if shift.end_time < shift.start_time:
+                    next_day = select_date + timedelta(days=1)
+                    shift_end_datetime = datetime.combine(next_day, shift.end_time)
+                else:
+                    shift_end_datetime = datetime.combine(select_date, shift.end_time)
 
                 split_hours = self.generate_hourly_intervals_with_dates_shift(
-                    str(shift_start_date),
-                    str(shift_start_time),
-                    str(next_shift_date),
-                    str(next_shift_time)
+                    str(select_date),
+                    str(shift.start_time),
+                    str(shift_end_datetime.date()),
+                    str(shift.end_time)
                 )
                 # print ("split-hours",split_hours)
 
@@ -1379,43 +1365,36 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
                     target = 0
                     target_production_count = 0
 
-                    
-
                     start_date = start_end_datetime[0][0]
                     start_time = start_end_datetime[0][1]
-
                     end_date = start_end_datetime[1][0]
                     end_time = start_end_datetime[1][1]
 
-                    shift_json["shift_end_time"] = str(end_date) + " " + str(end_time)
-
-                    
-                    
-                    # if start time is greater than end time, means next day changed. below condition will sort the data
+                    # Check if start time is greater than end time, indicating a next-day change
                     if start_time > end_time:
-                        sub_data = current_shift_production.filter( Q(date__gte=start_date,time__gte=start_time) | Q(date__lte=end_date,time__lt=end_time))
+                        sub_data = current_shift_production.filter(
+                            Q(date__gte=start_date, time__gte=start_time) |
+                            Q(date__lte=end_date, time__lt=end_time)
+                        )
                     else:
-                        sub_data = current_shift_production.filter(date__gte=start_date,date__lte=end_date).filter(time__gte=start_time,time__lt=end_time)
-                    
-
-                    if end_date == shift_end_date.strftime("%Y-%m-%d") and end_time == shift_end_time.strftime("%H:%M:%S"):
-                        sub_data = current_shift_production.filter(date__gte=start_date, date__lte=end_date).filter(time__gte=start_time, time__lte=end_time)
+                        sub_data = current_shift_production.filter(
+                            date__gte=start_date, date__lte=end_date
+                        ).filter(time__gte=start_time, time__lt=end_time)
 
                     try:
                         sub_data_first = sub_data.first()
-                        first_before_data = ProductionData.objects.filter(
-                            machine_id=machine_id,
-                            timestamp__lt=sub_data_first.timestamp
-                        ).last()
-                        
-                        if enable_printing:
-                        # Debugging: Check first_before_data values
-                            print("First before data:", first_before_data.production_count, first_before_data.target_production)
-                        
-                        last_inc_count = first_before_data.production_count
-                        # last_inc_target = first_before_data.target_production
-                    except:
-                        pass
+                        if sub_data_first:
+                            first_before_data = ProductionData.objects.filter(
+                                machine_id=machine_id,
+                                timestamp__lt=sub_data_first.timestamp
+                            ).last()
+
+                            if enable_printing:
+                                print("First before data:", first_before_data.production_count, first_before_data.target_production)
+
+                            last_inc_count = first_before_data.production_count if first_before_data else 0
+                    except Exception as e:
+                        last_inc_count = 0
 
                     for data in sub_data:
                         count += max(0, data.production_count - last_inc_count)
