@@ -2267,12 +2267,12 @@ class IndividualShiftReportViewSet(viewsets.ViewSet):
                     # )
 
                     if start_time > end_time:
-                        sub_data = machine_production_data_by_shift.filter( Q(date__gte=start_date,time__gte=start_time) | Q(date__lte=end_date,time__lte=end_time))
+                        sub_data = machine_production_data_by_shift.filter( Q(date__gte=start_date,time__gte=start_time) | Q(date__lte=end_date,time__lt=end_time))
                     else:
-                        sub_data = machine_production_data_by_shift.filter(date__gte=start_date,date__lte=end_date).filter(time__gte=start_time,time__lte=end_time)
+                        sub_data = machine_production_data_by_shift.filter(date__gte=start_date,date__lte=end_date).filter(time__gte=start_time,time__lt=end_time)
 
-                    # if end_date == shift_end_date.strftime("%Y-%m-%d") and end_time == shift_end_time.strftime("%H:%M:%S"):
-                    #     sub_data = machine_production_data_by_shift.filter(date__gte=start_date, date__lte=end_date).filter(time__gte=start_time, time__lte=end_time)
+                    if end_date == shift_end_date.strftime("%Y-%m-%d") and end_time == shift_end_time.strftime("%H:%M:%S"):
+                        sub_data = machine_production_data_by_shift.filter(date__gte=start_date, date__lte=end_date).filter(time__gte=start_time, time__lte=end_time)
 
                     try:
                         sub_data_first = sub_data.first()
@@ -2286,20 +2286,35 @@ class IndividualShiftReportViewSet(viewsets.ViewSet):
                         pass
 
                     for data in sub_data:
-                        temp_count = data.production_count - last_inc_count
-                        count += temp_count if temp_count >= 0 else data.production_count
+                        count += max(0, data.production_count - last_inc_count)
                         last_inc_count = data.production_count
+                        # print(f"last count -->{last_inc_count}")
+                        target_production_count = data.target_production
+                    
+                    if target_production_count > 0:
+                        last_target_production = target_production_count  # Update last non-zero target production
 
-                        if data.target_production != 0:
-                            target_production_count = data.target_production
+
+                        # temp_count = data.production_count - last_inc_count
+                        # count += temp_count if temp_count >= 0 else data.production_count
+                        # last_inc_count = data.production_count
+
+                        # if data.target_production != 0:
+                        #     target_production_count = data.target_production
 
                     # if target_production_count == 0:
                     #     last_target_production = target_production_count
 
-                    shift_timing_list[self.convert_to_12hr_format(start_time) + " - " + self.convert_to_12hr_format(end_time)] = {
-                        "actual_production": count,
-                        "target_production": target_production_count
-                    }
+                    if count == 0 and target_production_count == 0:
+                        shift_timing_list[self.convert_to_12hr_format(start_time) + " - " + self.convert_to_12hr_format(end_time)] = [0, last_target_production]
+                    else:
+                        shift_timing_list[self.convert_to_12hr_format(start_time) + " - " + self.convert_to_12hr_format(end_time)] = [count, target_production_count]
+
+
+                    # shift_timing_list[self.convert_to_12hr_format(start_time) + " - " + self.convert_to_12hr_format(end_time)] = {
+                    #     "actual_production": count,
+                    #     "target_production": target_production_count
+                    # }
 
                 shift_json["timing"] = shift_timing_list
 
