@@ -1474,6 +1474,7 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
             
         
             if next_datetime > end_datetime:
+                end_datetime = end_datetime.replace(second=59)
                 intervals.append([
                     (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:00')),
                     (end_datetime.strftime('%Y-%m-%d'), end_datetime.strftime('%H:%M:00'))
@@ -2477,6 +2478,7 @@ class IndividualShiftReportViewSet(viewsets.ViewSet):
             
         
             if next_datetime > end_datetime:
+                end_datetime = end_datetime.replace(second=59)
                 intervals.append([
                     (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:00')),
                     (end_datetime.strftime('%Y-%m-%d'), end_datetime.strftime('%H:%M:00'))
