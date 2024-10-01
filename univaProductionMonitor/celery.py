@@ -14,7 +14,7 @@ from django.db.models import Max
 import datetime
 import time
 from django.utils import timezone
-from datetime import datetime, timedelta, time as datetime_time
+from datetime import datetime, date as datetime_date, timedelta, time as datetime_time
 import django
 
 # Set the default Django settings module for the 'celery' program.
@@ -46,14 +46,16 @@ def processAndSaveMqttData(msg_data):
     # print ("Received Data-->",msg_data)
     handle_production_data(msg_data)
     update_dashboard_data()
-    send_production_updates()
-    date = msg_data.get('date')
-    machine_id = msg_data.get('machine_id')
+    send_production_updates(msg_data)
 
-    if date and machine_id :
-        generate_shift_report(date, machine_id)
-    else:
-        print("Missing required arguments for generate_shift_report")
+    
+    # date = msg_data.get('date')
+    # machine_id = msg_data.get('machine_id')
+
+    # if date and machine_id :
+    #     generate_shift_report(date, machine_id)
+    # else:
+    #     print("Missing required arguments for generate_shift_report")
     # print ("Finished...")
 
     # channel_layer = get_channel_layer()
@@ -117,57 +119,60 @@ def update_dashboard_data():
                 'total_count_difference': 0
             }
 
+        multiplyTarget = 1
+        current_production_data = ProductionData.objects.filter(production_date = running_production_date, shift_number = running_shift).order_by('timestamp')
+
+        if current_production_data.exists():
+            sub_data_first = current_production_data.first()
+            multiplyTarget = math.ceil((currentTimeStamp - eval(sub_data_first.timestamp))/3600)
+            # print("multiplyTarget",multiplyTarget)
+            if multiplyTarget > 8:
+                multiplyTarget = 8
+
         for machine in group.machine_list.all():
             machine_id = machine.machine_id
             machine_name = machine.machine_name
             machine_target = machine.production_per_hour
             # print("currenttime->",currentTimestamp)
             count = 0
-            lastcount = 0
-            multiplyTraget = 0
-            current_production_data = ProductionData.objects.filter(production_date = running_production_date, shift_number = running_shift).order_by('timestamp')
-            if current_production_data.exists():
-                sub_data_first = current_production_data.first()
-                multiplyTraget = math.ceil((currentTimeStamp - eval(sub_data_first.timestamp))/3600)
-                if multiplyTraget > 8:
-                    multiplyTraget = 8
-                # print (machine_name,"Mulitply Traget : ",currentTimeStamp, "-", sub_data_first.timestamp , "=",currentTimeStamp-eval(sub_data_first.timestamp),multiplyTraget)
-                current_production_data = current_production_data.filter(machine_id=machine_id)
 
+            # lastcount = 0
+            
+                # print (machine_name,"Mulitply Traget : ",currentTimeStamp, "-", sub_data_first.timestamp , "=",currentTimeStamp-eval(sub_data_first.timestamp),multiplyTraget)
             
 
-            try:
+            # try:
                 
-                sub_data_first = current_production_data.first()
-                first_before_data = ProductionData.objects.filter(
-                    machine_id=machine.machine_id,
-                    timestamp__lt=sub_data_first.timestamp
-                ).order_by("timestamp").last()
-                lastcount = first_before_data.production_count
-            except:
-                pass
-
+            #     sub_data_first = current_production_data.first()
+            #     first_before_data = ProductionData.objects.filter(
+            #         machine_id=machine.machine_id,
+            #         timestamp__lt=sub_data_first.timestamp
+            #     ).order_by("timestamp").last()
+            #     lastcount = first_before_data.production_count
+            # except:
+            #     pass
 
             if current_production_data:
-                for pro_shift_data in current_production_data:
-                    temp = pro_shift_data.production_count - lastcount
-                    count += temp if temp >= 0 else pro_shift_data.production_count
-                    lastcount = pro_shift_data.production_count
+                last_machine_production_data = current_production_data.filter(machine_id=machine_id).last()
+                count = last_machine_production_data.production_count
+                # for pro_shift_data in current_production_data:
+                #     temp = pro_shift_data.production_count - lastcount
+                #     count += temp if temp >= 0 else pro_shift_data.production_count
+                #     lastcount = pro_shift_data.production_count
 
-                first_production_count = current_production_data.first().production_count
-                current_production_count = count
+                
+                
 
-                if current_production_count == first_production_count:
-                    time_difference = currentTimeStamp - eval(sub_data_first.timestamp)
-                    if time_difference > MACHINE_OFFLINE_TIME:
-                        status = 1
-                        # print(f"Machine {machine_name} status changed to offline.")
-                    else:
-                        status = 0
-                        # print(f"Machine {machine_name} status changed to online.")
+                # status = 0
+                time_difference = currentTimeStamp - eval(last_machine_production_data.timestamp)
+                # print (currentTimeStamp,eval(last_machine_production_data.timestamp), MACHINE_OFFLINE_TIME,time_difference)
+                if time_difference > (5 * 60):
+                    status = 1
+                    # print(f"Machine {machine_name} status changed to offline.")
                 else:
                     status = 0
                     # print(f"Machine {machine_name} status changed to online.")
+               
 
                 machine.save()
 
@@ -176,7 +181,7 @@ def update_dashboard_data():
                 'machine_name': machine_name,
                 'status': status,
                 'production_count': count,
-                'target_production': machine_target * multiplyTraget,
+                'target_production': machine_target * multiplyTarget,
                 'count_difference': 0,
                 'previous_production_count': 0
             }
@@ -205,18 +210,25 @@ def update_dashboard_data():
     # print (response_data)
     send_to_socket(response_data)
 
-def send_production_updates(date_str=None):
-    if date_str is None:
-        date_str = timezone.now().strftime('%Y-%m-%d')
+def send_production_updates(message_data):
 
-    try:
-        select_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-    except ValueError:
-        # print(f"Invalid date format: {date_str}")
-        return
+    
+    # getting hr min sec
+    plcHR = int(message_data['PHR'])
+    plcMIN = int(message_data['PMIN'])
+    plcSEC = int(message_data['PSEC'])
+
+    # getting date month year
+    plcDate = int(message_data['PD'])
+    plcMonth = int(message_data['PM'])
+    plcYear = int(message_data['PY'])
+
+    message_date = datetime_date(plcYear, plcMonth, plcDate)
+    # message_time = datetime_time(plcHR, plcMIN, plcSEC)
+
 
     production_data = {
-        'date': select_date.strftime('%Y-%m-%d'),
+        'date': message_date.strftime('%Y-%m-%d'),
         'machine_groups': []
     }
 
@@ -233,9 +245,9 @@ def send_production_updates(date_str=None):
                 'shifts': []
             }
 
-            all_production_data = ProductionData.objects.filter(
-                production_date=select_date, machine_id=machine.machine_id
-            ).order_by('timestamp')
+            # all_production_data = ProductionData.objects.filter(
+            #     production_date=select_date, machine_id=machine.machine_id
+            # ).order_by('timestamp')
 
             total_shifts = ShiftTiming.objects.all()
 
@@ -253,14 +265,15 @@ def send_production_updates(date_str=None):
                 }
 
                 current_shift_production = ProductionData.objects.filter(
-                        production_date=select_date, 
+                        production_date=message_date, 
                         shift_number=shift.shift_number, 
                         machine_id=machine.machine_id
-                    ).order_by('timestamp')
+                    ).order_by('-production_count')
 
                 max_production_count = 0
                 if current_shift_production.exists():
-                    max_production_count = current_shift_production.aggregate(max_count=Max('production_count'))['max_count']
+                    # max_production_count = current_shift_production.aggregate(max_count=Max('production_count'))['max_count']
+                    max_production_count = current_shift_production.first().production_count
                     
                 shift_json["total_shift_production_count"] = max_production_count
 
@@ -272,7 +285,7 @@ def send_production_updates(date_str=None):
 
     try:
         production_update, created = ProductionUpdateData.objects.get_or_create(
-            date=select_date,
+            date=message_date,
             defaults={'production_data': production_data}
         )
         if not created:
@@ -281,13 +294,20 @@ def send_production_updates(date_str=None):
     except Exception as e:
         print(f"Error saving production update data: {e}")
 
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        'production_updates', {
-            'type': 'send_message',
-            'message': production_data
-        }
-    )
+
+    current_date = datetime_date.today()
+    #sending the current date data
+    production_data = ProductionUpdateData.objects.filter(date=current_date).first()
+    
+    if production_data:
+        # print ("sending data for ",current_date)
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            'production_updates', {
+                'type': 'send_message',
+                'message': production_data.production_data
+            }
+        )
 
 def send_to_socket(websocket_data):
     channel_layer = get_channel_layer()
@@ -312,20 +332,28 @@ def handle_production_data(message_data):
         end_shift_time = end_shift_time_str
 
     timestamp = message_data['timestamp']
+
     # dt = datetime.datetime.utcfromtimestamp(timestamp)
-    dt = datetime.fromtimestamp(timestamp)
-    message_date = dt.date()
-    message_time = dt.time()
+    # dt = datetime.fromtimestamp(timestamp)
+    # message_date = dt.date()
+    # message_time = dt.time()
 
-    if 'PHR' in message_data and 'PMIN' in message_data and 'PSEC' in message_data:
-        plcHR = int(message_data['PHR'])
-        plcMIN = int(message_data['PMIN'])
-        plcSEC = int(message_data['PSEC'])
-        # print (plcHR,plcMIN,plcSEC)
-        message_time = datetime_time(plcHR, plcMIN, plcSEC)
+    # if 'PHR' in message_data and 'PMIN' in message_data and 'PSEC' in message_data and 'PD' in message_data and 'PM' in message_data and 'PY' in message_data:
 
- 
+    #getting time from json
+    plcHR = int(message_data['PHR'])
+    plcMIN = int(message_data['PMIN'])
+    plcSEC = int(message_data['PSEC'])
     
+    # getting date month year
+    plcDate = int(message_data['PD'])
+    plcMonth = int(message_data['PM'])
+    plcYear = int(message_data['PY'])
+
+    # print (plcHR,plcMIN,plcSEC)
+    message_time = datetime_time(plcHR, plcMIN, plcSEC)
+    message_date = datetime_date(plcYear, plcMonth, plcDate)
+    # dt = datetime.combine(message_date,message_time)
     
     device_token = message_data['device_token']
     shift_number = message_data['shift_no']
@@ -347,18 +375,6 @@ def handle_production_data(message_data):
         except Exception as e:
            pass
 
-        # print ("Last production:",last_production_data.date,last_production_data.time,last_production_data.shift_number, last_production_data.machine_id, last_production_data.production_count, last_production_data.target_production)
-        # if last_production_data and last_production_data.production_count > production_count:
-        #     errors.append({
-        #         "status": "PRODUCTION COUNT ERROR",
-        #         "message": "Production count is less than last recorded count for " + machine_id,
-        #         "device_token": device_token,
-        #         "production_count": production_count,
-        #         "timestamp": timestamp
-        #     })
-        #     print('Production count is less than the last recorded count')
-        #     continue
-
         shift_instance = ShiftTiming.objects.filter(shift_number=shift_number).first()
         if not shift_instance:
             shift_instance = ShiftTiming(
@@ -369,7 +385,7 @@ def handle_production_data(message_data):
             )
             shift_instance.save()
 
-        production_date = message_date - timedelta(days=1) if dt.time() < end_shift_time and shift_number == end_shift_number else message_date
+        production_date = message_date - timedelta(days=1) if message_time < end_shift_time and shift_number == end_shift_number else message_date
 
         try:
             if not last_production_data or last_production_data.shift_number != shift_instance.shift_number or last_production_data.target_production != machine.production_per_hour or last_production_data.production_count != production_count or last_production_data.production_date != production_date:
@@ -415,16 +431,7 @@ def handle_production_data(message_data):
                 "message": error
             }
             print (response)
-    #         publish_response(mqtt_client, device_token, response, is_error=True)
-    #     return False
 
-    # response = {
-    #     "status": "OK",
-    #     "message": "Successfully saved data",
-    #     "device_token": device_token,
-    #     "timestamp": timestamp
-    # }
-    # publish_response(mqtt_client, device_token, response)
 
 def generate_shift_report(date, machine_id, room_group_name):
     machine_details = get_object_or_404(MachineDetails, machine_id=machine_id)

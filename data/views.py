@@ -3,7 +3,7 @@ from rest_framework import viewsets, status, views
 from rest_framework.response import Response
 import datetime
 from django.core import serializers
-from django.db.models import Q
+from django.db.models import Q, Max
 from rest_framework.decorators import action
 from .models import *
 from .serializers import *
@@ -11,7 +11,6 @@ from django.db.models import Sum
 from django.utils.dateparse import parse_date
 from datetime import datetime, timedelta, date
 from Userauth.models import UserDetail
-from django.db.models import Max
 from rest_framework.exceptions import NotFound
 from collections import defaultdict
 from configuration.models import Setting
@@ -914,6 +913,7 @@ class ProductionViewSet(viewsets.ViewSet):
         setting = Setting.objects.first()
         enable_printing = setting.enable_printing if setting else False
 
+        # enable_printing = True
         select_date = request.data.get('date')
         if not select_date:
             current_date = date.today()
@@ -924,7 +924,7 @@ class ProductionViewSet(viewsets.ViewSet):
                 select_date = current_date
             select_date = select_date.strftime('%Y-%m-%d')
             # return Response({"error": "Date is required. Please provide a date in YYYY-MM-DD format."}, status=status.HTTP_400_BAD_REQUEST)
-
+        
         try:
             select_date = datetime.strptime(select_date, '%Y-%m-%d').date()
         except ValueError:
@@ -958,9 +958,9 @@ class ProductionViewSet(viewsets.ViewSet):
                     "shifts": []
                 }
 
-                all_production_data = ProductionData.objects.filter(production_date=select_date, machine_id=machine.machine_id).order_by('timestamp')
-                if enable_printing:
-                    print("All Production Data for Machine ID", machine.machine_id, ":", all_production_data)
+                # all_production_data = ProductionData.objects.filter(production_date=select_date, machine_id=machine.machine_id).order_by('timestamp')
+                # if enable_printing:
+                #     print("All Production Data for Machine ID", machine.machine_id, ":", all_production_data)
 
                 total_shifts = ShiftTiming.objects.all()
 
@@ -981,11 +981,12 @@ class ProductionViewSet(viewsets.ViewSet):
                         production_date=select_date, 
                         shift_number=shift.shift_number, 
                         machine_id=machine.machine_id
-                    ).order_by('timestamp')
+                    ).order_by('-production_count')
 
                     max_production_count = 0
                     if current_shift_production.exists():
-                        max_production_count = current_shift_production.aggregate(max_count=Max('production_count'))['max_count']
+                        # max_production_count = current_shift_production.aggregate(max_count=Max('production_count'))['max_count']
+                        max_production_count = current_shift_production.first().production_count
                     
                     shift_json["total_shift_production_count"] = max_production_count
                     
@@ -1406,7 +1407,7 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
                         first_before_data = ProductionData.objects.filter(
                             machine_id=machine_id,
                             timestamp__lt=sub_data_first.timestamp
-                        ).last()
+                        ).order_by('timestamp').last()
                         
                         if enable_printing:
                         # Debugging: Check first_before_data values
@@ -2278,7 +2279,7 @@ class IndividualShiftReportViewSet(viewsets.ViewSet):
                         first_before_data = ProductionData.objects.filter(
                             machine_id=machine_id,
                             timestamp__lt=sub_data_first.timestamp
-                        ).last()
+                        ).order_by('timestamp').last()
 
                         last_inc_count = first_before_data.production_count
                     except:
