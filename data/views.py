@@ -2416,7 +2416,7 @@ class IndividualShiftReportViewSet(viewsets.ViewSet):
                             first_before_data = ProductionData.objects.filter(
                                 machine_id=machine_id,
                                 timestamp__lt=sub_data_first.timestamp
-                            ).last()
+                            ).order_by('timestamp').last()
 
                             last_inc_count = first_before_data.production_count
                         except:
