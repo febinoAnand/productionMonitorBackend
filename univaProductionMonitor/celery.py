@@ -330,6 +330,7 @@ def handle_production_data(message_data):
     device_token = message_data['device_token']
     shift_number = message_data['shift_no']
     errors = []
+    production_data_list = []
 
     for machine_id, production_count in message_data.items():
         if machine_id in ['timestamp', 'device_token', 'shift_no']:
@@ -389,10 +390,8 @@ def handle_production_data(message_data):
                         log_data_id=message_data["log_id"],
                         timestamp=timestamp
                     )
-
-                    production_data.save()
-
-                    # print ("Production:",production_data.date,production_data.time,production_data.shift_number, production_data.machine_id, production_data.production_count, production_data.target_production,production_data.production_date)
+                    production_data_list.append(production_data)
+                    # print(f'bulk list: {production_data_list}')
 
                     if enable_printing:
                         print(f'Saved production data to database: {production_data}')
@@ -407,7 +406,22 @@ def handle_production_data(message_data):
             if enable_printing:
               print(f'Error saving production data to database: {e}')
             continue
-    # print()   
+
+    if production_data_list:
+        try:
+            ProductionData.objects.bulk_create(production_data_list)
+            if enable_printing:
+                print(f'Saved {len(production_data_list)} production records in bulk.')
+        except Exception as e:
+            errors.append({
+                "status": "BULK SAVE ERROR",
+                "message": f"Error bulk saving production data: {e}",
+                "device_token": device_token,
+                "timestamp": timestamp,
+            })
+            if enable_printing:
+                print(f'Error bulk saving production data: {e}')
+
     if errors:
         for error in errors:
             response = {
