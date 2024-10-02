@@ -43,7 +43,7 @@ from import_export.admin import ExportActionMixin
 class LogDataAdmin(ExportActionMixin,admin.ModelAdmin):
     list_display = ('date', 'time', 'data_id', 'received_data')
     search_fields = ('data_id', 'protocol', 'topic_api')
-    list_filter = ('date', 'protocol', 'data_id')
+    list_filter = ('date', 'protocol')
 
 class DeviceDataAdmin(ExportActionMixin,admin.ModelAdmin):
     list_display = ('date', 'time', 'device_id', "timestamp" ,'data')
@@ -59,7 +59,7 @@ class MachineDataAdmin(admin.ModelAdmin):
 class ProductionDataAdmin(ExportActionMixin,admin.ModelAdmin):
     list_display = ( 'date', 'time','shift_number', 'machine_name', 'production_count', 'target_production','production_date','timestamp')
     search_fields = ('date','shift_name', 'machine_id','machine_name','timestamp','production_date')
-    list_filter = ('date','time','shift_number','machine_name','production_date',)
+    list_filter = ('date','shift_number','machine_name','production_date',)
 
 class DashbaordDataAdmin(admin.ModelAdmin):
     list_display = ('date','time','dashbaordData')
