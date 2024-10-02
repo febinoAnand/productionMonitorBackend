@@ -456,7 +456,7 @@ def generate_shift_report(date, machine_id, room_group_name):
         }
         
         machine_production_data_by_shift = ProductionData.objects.filter(
-            production_date=date,
+            production_date=search_date,
             shift_number=shift.shift_number,
             machine_id=machine_id
         ).order_by('timestamp')
@@ -523,7 +523,6 @@ def generate_shift_report(date, machine_id, room_group_name):
 
             shift_json["timing"] = shift_timing_list
         machines_details_json["shifts"].append(shift_json)
-    print("Sending shift report data:", machines_details_json)
 
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
