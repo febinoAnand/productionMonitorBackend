@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.db.models import Max
-
+from django.db.models import Q
 import datetime
 import time
 from django.utils import timezone
@@ -77,16 +77,17 @@ def processAndSaveMqttData(msg_data):
 def send_individual_machine_data():
     all_machine = MachineDetails.objects.all()
     for machine in all_machine:
-        print("sending data to ",machine.machine_id)
+        machine_id = getattr(machine, 'machine_id', None)
+        # print("sending data to ",machine.machine_id)
+        machine_report = generate_shift_report(machine_id)
         channel_layer = get_channel_layer()
         # print("channelLayer->",channel_layer)
         async_to_sync(channel_layer.group_send)(
             machine.machine_id, {
                 'type' : 'send_message',
-                'value': {"websocket_data":machine.machine_id}
+                'value': machine_report
                 }
         )
-
 
 
 
@@ -452,12 +453,26 @@ def handle_production_data(message_data):
             print (response)
 
 
-def generate_shift_report(date, machine_id, room_group_name):
-    machine_details = get_object_or_404(MachineDetails, machine_id=machine_id)
+def generate_shift_report(machine_id, search_date=None):
+    if search_date is None:
+        search_date = datetime.now().date()
+    else:
+        try:
+            search_date = datetime.strptime(search_date, '%Y-%m-%d').date()
+        except ValueError:
+            return {"message": "Invalid date format, expected YYYY-MM-DD"}
+
+    try:
+        # Get the machine details for the specific machine_id
+        machine = MachineDetails.objects.get(machine_id=machine_id)
+    except MachineDetails.DoesNotExist:
+        return {"message": f"Machine with ID {machine_id} not found."}
+
     machines_details_json = {
-        "date": date,
-        "machine_id": machine_id,
-        "machine_name": machine_details.machine_name,
+        "date": str(search_date),
+        "machine_id": machine.machine_id,
+        "machine_name": machine.machine_name,
+        "status": machine.status,
         "shifts": []
     }
 
@@ -473,110 +488,188 @@ def generate_shift_report(date, machine_id, room_group_name):
             "shift_end_time": None,
             "timing": {}
         }
-        
+
         machine_production_data_by_shift = ProductionData.objects.filter(
-            production_date=date,
+            production_date=search_date,
             shift_number=shift.shift_number,
             machine_id=machine_id
         ).order_by('timestamp')
 
         if machine_production_data_by_shift.exists():
-            first_production_data = machine_production_data_by_shift.first()
-            last_production_data = machine_production_data_by_shift.last()
+                    first_production_data = machine_production_data_by_shift.first()
+                    last_production_data = machine_production_data_by_shift.last()
 
-            shift_start_datetime = first_production_data.timestamp
-            shift_end_datetime = last_production_data.timestamp
+                    shift_start_date = first_production_data.date
+                    shift_start_time = first_production_data.time
 
-            shift_json["shift_start_time"] = shift_start_datetime.strftime('%Y-%m-%d %H:%M:%S')
-            shift_json["shift_end_time"] = shift_end_datetime.strftime('%Y-%m-%d %H:%M:%S')
+                    shift_json["shift_start_time"] = str(shift_start_date) + " " + str(shift_start_time)
 
-            split_hours = generate_hourly_intervals_with_dates(
-                shift_start_datetime.date(),
-                shift_end_datetime.date(),
-                shift_start_datetime.time(),
-                shift_end_datetime.time()
-            )
+                    shift_end_date = last_production_data.date
+                    shift_end_time = last_production_data.time
 
-            last_inc_count = 0
-            target_production_count = 0
-            shift_timing_list = {}
+                    # shift_json["shift_end_time"] = str(shift_end_date) + " " + str(shift_end_time)
 
-            for start_end_datetime in split_hours:
-                count = 0
-                start_date, start_time = start_end_datetime[0]
-                end_date, end_time = start_end_datetime[1]
+                    try:
+                        nextShiftEndData = ProductionData.objects.filter(timestamp__gt=last_production_data.timestamp, machine_id=machine_id).order_by('timestamp').first()
+                        next_shift_date = nextShiftEndData.date
+                        next_shift_time = nextShiftEndData.time
+                    except Exception as e:
+                        next_shift_date = ""
+                        next_shift_time = ""
+                        # print ("Not found next shift data")
 
-                sub_data = machine_production_data_by_shift.filter(
-                    timestamp__date__gte=start_date, timestamp__date__lte=end_date,
-                    timestamp__time__gte=start_time, timestamp__time__lte=end_time
-                )
 
-                if end_date == shift_end_datetime.date() and end_time == shift_end_datetime.time():
-                    sub_data = machine_production_data_by_shift.filter(
-                        timestamp__date__gte=start_date
-                    ).filter(timestamp__time__gte=start_time, timestamp__time__lte=end_time)
+                    split_hours = generate_hourly_intervals_with_dates_shift(
+                        str(shift_start_date),
+                        str(shift_start_time),
+                        str(next_shift_date),
+                        str(next_shift_time)
+                    )
 
-                try:
-                    sub_data_first = sub_data.first()
-                    first_before_data = ProductionData.objects.filter(
-                        machine_id=machine_id,
-                        timestamp__lt=sub_data_first.timestamp
-                    ).last()
+                    last_inc_count = 0
+                    target_production_count = 0
+                    shift_timing_list = {}
 
-                    last_inc_count = first_before_data.production_count if first_before_data else 0
-                except:
-                    pass
+                    for start_end_datetime in split_hours:
+                        count = 0
+                        # target = 0
+                        target_production_count = 0
 
-                for data in sub_data:
-                    temp_count = data.production_count - last_inc_count
-                    count += temp_count if temp_count >= 0 else data.production_count
-                    last_inc_count = data.production_count
+                        start_date = start_end_datetime[0][0]
+                        start_time = start_end_datetime[0][1]
 
-                    if data.target_production != 0:
-                        target_production_count = data.target_production
+                        end_date = start_end_datetime[1][0]
+                        end_time = start_end_datetime[1][1]
 
-                shift_timing_list[f"{convert_to_12hr_format(start_time)} - {convert_to_12hr_format(end_time)}"] = {
-                    "actual_production": count,
-                    "target_production": target_production_count
-                }
+                        shift_json["shift_end_time"] = str(end_date) + " " + str(end_time)
 
-            shift_json["timing"] = shift_timing_list
-        machines_details_json["shifts"].append(shift_json)
-    print("Sending shift report data:", machines_details_json)
+                        # sub_data = machine_production_data_by_shift.filter(
+                        #     date__gte=start_date, date__lte=end_date,
+                        #     time__gte=start_time, time__lte=end_time
+                        # )
 
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        "shift_groups",
-        {
-            "type": "shift_report",
-            "message": machines_details_json
-        }
-    )
+                        if start_time > end_time:
+                            sub_data = machine_production_data_by_shift.filter( Q(date__gte=start_date,time__gte=start_time) | Q(date__lte=end_date,time__lt=end_time))
+                        else:
+                            sub_data = machine_production_data_by_shift.filter(date__gte=start_date,date__lte=end_date).filter(time__gte=start_time,time__lt=end_time)
 
-def generate_hourly_intervals_with_dates(from_date, to_date, start_time, end_time):
-    start_datetime = datetime.combine(from_date, start_time)
-    end_datetime = datetime.combine(to_date, end_time)
+                        if end_date == shift_end_date.strftime("%Y-%m-%d") and end_time == shift_end_time.strftime("%H:%M:%S"):
+                            sub_data = machine_production_data_by_shift.filter(date__gte=start_date, date__lte=end_date).filter(time__gte=start_time, time__lte=end_time)
 
-    intervals = []
+                        try:
+                            sub_data_first = sub_data.first()
+                            first_before_data = ProductionData.objects.filter(
+                                machine_id=machine_id,
+                                timestamp__lt=sub_data_first.timestamp
+                            ).order_by('timestamp').last()
 
-    if end_datetime <= start_datetime:
-        end_datetime += timedelta(days=1)
+                            last_inc_count = first_before_data.production_count
+                        except:
+                            pass
 
-    while start_datetime < end_datetime:
-        next_datetime = start_datetime + timedelta(hours=1)
-        if next_datetime > end_datetime:
+                        for data in sub_data:
+                            count += max(0, data.production_count - last_inc_count)
+                            last_inc_count = data.production_count
+                            # print(f"last count -->{last_inc_count}")
+                            target_production_count = data.target_production
+                        
+                        if target_production_count > 0:
+                            last_target_production = target_production_count  # Update last non-zero target production
+
+
+                            # temp_count = data.production_count - last_inc_count
+                            # count += temp_count if temp_count >= 0 else data.production_count
+                            # last_inc_count = data.production_count
+
+                            # if data.target_production != 0:
+                            #     target_production_count = data.target_production
+
+                        # if target_production_count == 0:
+                        #     last_target_production = target_production_count
+
+                        # if count == 0 and target_production_count == 0:
+                        #     shift_timing_list[self.convert_to_12hr_format(start_time) + " - " + self.convert_to_12hr_format(end_time)] = [0, last_target_production]
+                        # else:
+                        #     shift_timing_list[self.convert_to_12hr_format(start_time) + " - " + self.convert_to_12hr_format(end_time)] = [count, target_production_count]
+
+                        if count == 0 and target_production_count == 0:
+                            shift_timing_list[convert_to_12hr_format(start_time) + " - " + convert_to_12hr_format(end_time)] = {
+                                "actual_production": 0,
+                                "target_production": last_target_production
+                            }
+
+                        else:
+                            shift_timing_list[convert_to_12hr_format(start_time) + " - " + convert_to_12hr_format(end_time)] = {
+                                "actual_production": count,
+                                "target_production": target_production_count
+                            }
+
+                    shift_json["timing"] = shift_timing_list
+
+                    # if latest_shift_number is None or shift.shift_number > latest_shift_number:
+                    #     latest_shift_number = shift.shift_number
+                    #     latest_shift_data = shift_json
+
+        machines_details_json["shifts"].append({
+                    "shift_no": shift.shift_number,
+                    "shift_name": shift.shift_name,
+                    "shift_start_time": shift_json["shift_start_time"],
+                    "shift_end_time": shift_json["shift_end_time"],
+                    "timing": shift_json["timing"]
+                })
+
+    return machines_details_json
+
+
+
+def generate_hourly_intervals_with_dates_shift( from_date, start_time, shift_date, shift_time ) :
+        start_datetime = datetime.strptime(f"{from_date} {start_time}", '%Y-%m-%d %H:%M:%S')
+        
+        
+        max_end_datetime = start_datetime + timedelta(hours=8)
+        
+        try:
+            shift_datetime = datetime.strptime(f"{shift_date} {shift_time}", '%Y-%m-%d %H:%M:%S')
+            end_datetime = min(max_end_datetime, shift_datetime)
+        except Exception as e:
+            end_datetime = max_end_datetime
+            
+        current_time = datetime.now()
+        
+        intervals = []
+        
+        
+        while start_datetime < end_datetime:
+            next_datetime = start_datetime + timedelta(hours=1)
+            
+        
+            if next_datetime > current_time:
+                intervals.append([
+                    (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:00')),
+                    (current_time.strftime('%Y-%m-%d'), current_time.strftime('%H:%M:00'))
+                ])
+                break
+            
+        
+            if next_datetime > end_datetime:
+                end_datetime = end_datetime.replace(second=59)
+                intervals.append([
+                    (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:00')),
+                    (end_datetime.strftime('%Y-%m-%d'), end_datetime.strftime('%H:%M:00'))
+                ])
+                break
+            
             intervals.append([
-                (start_datetime.date(), start_datetime.time()),
-                (end_datetime.date(), end_datetime.time())
+                (start_datetime.strftime('%Y-%m-%d'), start_datetime.strftime('%H:%M:00')),
+                (next_datetime.strftime('%Y-%m-%d'), next_datetime.strftime('%H:%M:00'))
             ])
-            break
-        intervals.append([
-            (start_datetime.date(), start_datetime.time()),
-            (next_datetime.date(), next_datetime.time())
-        ])
-        start_datetime = next_datetime
+            start_datetime = next_datetime
 
-    return intervals
+        return intervals
 
-def convert_to_12hr_format(time_24hr):
-    return time_24hr.strftime('%I:%M %p')
+
+
+def convert_to_12hr_format(time_24hr_str):
+        time_24hr = datetime.strptime(time_24hr_str, '%H:%M:%S')
+        time_12hr_str = time_24hr.strftime('%I:%M %p')
+        return time_12hr_str
