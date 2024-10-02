@@ -48,6 +48,7 @@ def processAndSaveMqttData(msg_data):
     update_dashboard_data()
     send_production_updates(msg_data)
 
+    send_individual_machine_data()
     
     # date = msg_data.get('date')
     # machine_id = msg_data.get('machine_id')
@@ -72,6 +73,22 @@ def processAndSaveMqttData(msg_data):
 # @app.on_after_configure.connect
 # def setup_periodic_tasks(sender, **kwargs):
 #     sender.add_periodic_task(5.0, mainMailReadTask.s())
+
+def send_individual_machine_data():
+    all_machine = MachineDetails.objects.all()
+    for machine in all_machine:
+        print("sending data to ",machine.machine_id)
+        channel_layer = get_channel_layer()
+        # print("channelLayer->",channel_layer)
+        async_to_sync(channel_layer.group_send)(
+            machine.machine_id, {
+                'type' : 'send_message',
+                'value': {"websocket_data":machine.machine_id}
+                }
+        )
+
+
+
 
 def update_dashboard_data():
     # print ("Updating dashboard data...")
@@ -317,6 +334,8 @@ def send_to_socket(websocket_data):
             'value': websocket_data
             }
     )
+
+
 
 def handle_production_data(message_data):
     setting = Setting.objects.first()
