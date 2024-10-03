@@ -16,6 +16,7 @@ from collections import defaultdict
 from configuration.models import Setting
 import time
 import math
+from univaProductionMonitor.celery import check_and_update_production_data
 
 class RawGetMethod(views.APIView):
     schema = None
@@ -933,11 +934,11 @@ class ProductionViewSet(viewsets.ViewSet):
         if enable_printing:
             print("Selected Date:", select_date)
 
-        existing_data = ProductionUpdateData.objects.filter(date=select_date).first()
-        if existing_data:
-            if enable_printing:
-                print("Returning existing production data for the selected date.")
-            return Response(existing_data.production_data, status=status.HTTP_200_OK)
+        # existing_data = ProductionUpdateData.objects.filter(date=select_date).first()
+        # if existing_data:
+        #     if enable_printing:
+        #         print("Returning existing production data for the selected date.")
+        #     return Response(existing_data.production_data, status=status.HTTP_200_OK)
 
         machine_groups = MachineGroup.objects.all()
         output_json = {
@@ -1080,6 +1081,10 @@ class ProductionViewSet(viewsets.ViewSet):
 
             output_json["machine_groups"].append(group_json)
 
+        check_and_update_production_data.delay(select_date.strftime('%Y-%m-%d'), output_json)
+
+        existing_data = ProductionUpdateData.objects.filter(date=select_date).first()
+
         try:
             if existing_data:
                 existing_data.production_data = output_json
@@ -1096,8 +1101,6 @@ class ProductionViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response({"error": f"Error saving production data: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        if enable_printing:
-            print("Output JSON", output_json)
         return Response(output_json, status=status.HTTP_200_OK)
 
 
