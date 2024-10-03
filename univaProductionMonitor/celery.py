@@ -417,6 +417,7 @@ def handle_production_data(message_data):
         try:
             last_production_data = ProductionData.objects.filter(machine_id=machine.machine_id, timestamp__lt = timestamp).order_by('-timestamp').first()
         except Exception as e:
+        #    print("No last production data found")
            pass
 
         shift_instance = ShiftTiming.objects.filter(shift_number=shift_number).first()
@@ -605,10 +606,14 @@ def generate_shift_report(machine_id, search_date=None):
                             pass
 
                         for data in sub_data:
-                            count += max(0, data.production_count - last_inc_count)
+                            temp_count = data.production_count - last_inc_count
+                            count += temp_count if temp_count >= 0 else data.production_count
                             last_inc_count = data.production_count
-                            # print(f"last count -->{last_inc_count}")
                             target_production_count = data.target_production
+                            # count += max(0, data.production_count - last_inc_count)
+                            # last_inc_count = data.production_count
+                            # # print(f"last count -->{last_inc_count}")
+                            # target_production_count = data.target_production
                         
                         if target_production_count > 0:
                             last_target_production = target_production_count  # Update last non-zero target production

@@ -12,6 +12,11 @@ from datetime import datetime, timedelta
 from django.db.models import Q
 
 
+#print current timestamp
+
+
+programStartTime = datetime.now()
+
 
 def generate_hourly_intervals_with_dates_shift(from_date, start_time, shift_date, shift_time):
         start_datetime = datetime.strptime(f"{from_date} {start_time}", '%Y-%m-%d %H:%M:%S')
@@ -150,19 +155,20 @@ def convert_to_12hr_format(time_24hr_str):
 print ()
 
 
-select_date = datetime(2024,9,30)
-machine_id = "M017"
-shift = 3
+# select_date = datetime(2024,9,30)
+# machine_id = "M018"
+# shift = 3
 
-start_date = datetime(2024,9,30)
-end_date = datetime(2024,9,30)
 
-start_time = time(22,31,4)
-end_time = time(23,31,4)
+# start_date = datetime(2024,9,30)
+# end_date = datetime(2024,9,30)
 
-print("Current Date -->", select_date)
-print("Machine ID -->", machine_id)
-print("shift -->",shift)
+# start_time = time(22,31,4)
+# end_time = time(23,31,4)
+
+# print("Current Date -->", select_date)
+# print("Machine ID -->", machine_id)
+# print("shift -->",shift)
 
 print
 
@@ -208,8 +214,8 @@ print
 # print ()
 
 
-select_date = '2024-09-30'
-machine_id = 'M017'
+select_date = '2024-10-03'
+machine_id = 'M016'
 
 
 
@@ -309,6 +315,7 @@ for shift in total_shifts:
 
             shift_json["shift_end_time"] = str(end_date) + " " + str(end_time)
 
+            # print()
             print('[',start_date,start_time,'-',end_date,end_time,']')
             
             
@@ -340,13 +347,17 @@ for shift in total_shifts:
                 pass
 
             for data in sub_data:
-                
-                
-                
-                count += max(0, data.production_count - last_inc_count)
+                temp_count = data.production_count - last_inc_count
+                count += temp_count if temp_count >= 0 else data.production_count
                 last_inc_count = data.production_count
-                # print(f"last count -->{last_inc_count}")
                 target_production_count = data.target_production
+
+    
+
+                # count += max(0, data.production_count - last_inc_count)
+                # last_inc_count = data.production_count
+                # print(f"last count -->{last_inc_count}")
+                # target_production_count = data.target_production
 
                 print (data.date,data.time,data.shift_number,data.production_count,data.timestamp,count)
 
@@ -366,10 +377,16 @@ for shift in total_shifts:
 
             # if enable_printing:
             #     print(f"Interval: {start_time} - {end_time}, Count: {count}, Target: {target_production_count}")
-        print("total count->",total_count)
+        # print("total count->",total_count)
         shift_json["timing"] = shift_timing_list
         
 
     output_json["shifts"].append(shift_json)
 
 # print(output_json)
+
+programEndTime = datetime.now()
+print ("program Start ->",programStartTime)
+print ("program End ->",programEndTime)
+
+print ("estimated Time ->",programEndTime-programStartTime)
