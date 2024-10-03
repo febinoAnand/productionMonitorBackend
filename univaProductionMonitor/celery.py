@@ -91,8 +91,8 @@ def send_individual_machine_data():
 
 @shared_task
 def check_and_update_production_data(select_date, output_json):
-    print("Received Date:", select_date)
-    print("Received Output JSON:", output_json)
+    # print("Received Date:", select_date)
+    # print("Received Output JSON:", output_json)
     try:
         select_date = datetime.strptime(select_date, '%Y-%m-%d').date()
         existing_data = ProductionUpdateData.objects.filter(date=select_date).first()
@@ -101,15 +101,15 @@ def check_and_update_production_data(select_date, output_json):
             if existing_data.production_data != output_json:
                 existing_data.production_data = output_json
                 existing_data.save()
-                print(f"Production data updated for {select_date}.")
-            else:
-                print(f"No changes in production data for {select_date}.")
+            #     print(f"Production data updated for {select_date}.")
+            # else:
+            #     print(f"No changes in production data for {select_date}.")
         else:
             ProductionUpdateData.objects.create(
                 date=select_date,
                 production_data=output_json
             )
-            print(f"New production data created for {select_date}.")
+            # print(f"New production data created for {select_date}.")
     
     except Exception as e:
         print(f"Error updating production data: {e}")
