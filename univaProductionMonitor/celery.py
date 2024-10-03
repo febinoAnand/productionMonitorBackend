@@ -46,9 +46,9 @@ def processAndSaveMqttData(msg_data):
     # print ("Received Data-->",msg_data)
     handle_production_data(msg_data)
     update_dashboard_data()
-    send_production_updates(msg_data)
+    # send_production_updates(msg_data)
 
-    send_individual_machine_data()
+    # send_individual_machine_data()
     
     # date = msg_data.get('date')
     # machine_id = msg_data.get('machine_id')
