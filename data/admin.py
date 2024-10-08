@@ -40,10 +40,17 @@ from import_export.admin import ExportActionMixin
 #     def has_change_permission(self, request, obj=None):
 #         return False
     
-class LogDataAdmin(ExportActionMixin,admin.ModelAdmin):
-    list_display = ('date', 'time', 'data_id', 'received_data')
+class LogDataAdmin(ExportActionMixin, admin.ModelAdmin):
+    list_display = ('date', 'time', 'data_id', 'get_request_display', 'response')
     search_fields = ('data_id', 'protocol', 'topic_api')
     list_filter = ('date', 'protocol')
+
+    def get_request_display(self, obj):
+        return obj.received_data
+    get_request_display.short_description = 'Request'
+
+    def has_add_permission(self, request):
+        return False
 
 class DeviceDataAdmin(ExportActionMixin,admin.ModelAdmin):
     list_display = ('date', 'time', 'device_id', "timestamp" ,'data')

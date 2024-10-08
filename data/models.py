@@ -68,6 +68,7 @@ class LogData(models.Model):
     protocol = models.CharField(max_length=15, null=True, blank=True)
     topic_api = models.CharField(max_length=100, null=True, blank=True)
     data_id = models.CharField(max_length=50, unique=False,null=True, blank=True)
+    response = models.JSONField(null=True, blank=True)
 
     def __str__(self):
         return str(self.data_id)
