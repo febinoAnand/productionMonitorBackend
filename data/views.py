@@ -1845,6 +1845,7 @@ class ShiftDataViewSet(viewsets.ViewSet):
                     machine_id = machine.machine_id
                     machine_name = machine.machine_name
                     status = machine.status
+                    device_status = machine.device_status
                     machine_target = machine.production_per_hour
                     # print("currenttime->",currentTimestamp)
                     count = 0
@@ -1884,6 +1885,7 @@ class ShiftDataViewSet(viewsets.ViewSet):
                         'machine_id': machine_id,
                         'machine_name': machine_name,
                         'status': status,
+                        'device_status': device_status,
                         'production_count': count,
                         'target_production': machine_target * multiplyTraget,
                         'count_difference': 0,
