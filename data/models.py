@@ -4,6 +4,8 @@ import datetime
 from django.db import models
 from events.models import Event,EventGroup
 from devices.models import MachineDetails,RFID, DeviceDetails,ShiftTimings
+from datetime import timedelta
+from univaProductionMonitor import settings
 
 # Create your models here.
 
@@ -70,8 +72,24 @@ class LogData(models.Model):
     data_id = models.CharField(max_length=50, unique=False,null=True, blank=True)
     response = models.JSONField(null=True, blank=True)
 
+    def save(self, *args, **kwargs):
+        if self.date:
+            cutoff_date = self.date - timedelta(days=settings.LOG_DATA_RETENTION_DAYS)
+            LogData.objects.filter(date__lt=cutoff_date).delete()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return str(self.data_id)
+    
+    # def save(self, *args, **kwargs):
+    #     self.delete_old_logs()
+    #     super().save(*args, **kwargs)
+
+    # @classmethod
+    # def delete_old_logs(cls):
+    #     retention_days = settings.LOG_DATA_RETENTION_DAYS
+    #     cutoff_date = timezone.now().date() - timedelta(days=retention_days)
+    #     cls.objects.filter(date__lt=cutoff_date).delete()
     
 
 class DeviceData(models.Model):
