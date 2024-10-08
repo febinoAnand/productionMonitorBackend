@@ -4,8 +4,8 @@ import datetime
 from django.db import models
 from events.models import Event,EventGroup
 from devices.models import MachineDetails,RFID, DeviceDetails,ShiftTimings
-from datetime import timedelta
 from univaProductionMonitor import settings
+from datetime import timedelta
 
 # Create your models here.
 

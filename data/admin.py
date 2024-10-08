@@ -1,6 +1,5 @@
 from django.contrib import admin
 from django.http import HttpRequest
-from .models import RawData,ProblemData,LastProblemData
 from .models import LogData, DeviceData, ProductionData, DashbaordData, ProductionUpdateData
 from import_export.admin import ExportActionMixin
 # Register your models here.

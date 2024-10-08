@@ -133,5 +133,3 @@ class Token(models.Model):
     deviceID = models.OneToOneField(DeviceDetails,blank=False,null=False,on_delete=models.CASCADE,related_name="deviceToken")
     token = models.CharField(max_length=30)
     createdAt = models.DateTimeField(auto_now_add=True)
-
-
