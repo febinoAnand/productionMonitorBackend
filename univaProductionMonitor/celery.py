@@ -511,8 +511,22 @@ def generate_shift_report(machine_id, search_date=None):
         "machine_id": machine.machine_id,
         "machine_name": machine.machine_name,
         "status": machine.status,
+        "latest_production_time": None,
         "shifts": []
-    }
+        }
+
+    latest_production_data = ProductionData.objects.filter(
+            machine_id=machine_id,
+            production_date=search_date
+        ).order_by('timestamp').last()
+
+    if latest_production_data:
+            if isinstance(latest_production_data.timestamp, str):
+                unix_timestamp = int(latest_production_data.timestamp)
+                timestamp = datetime.fromtimestamp(unix_timestamp)
+            else:
+                timestamp = latest_production_data.timestamp
+            machines_details_json["latest_production_time"] = timestamp.strftime("%H:%M:%S")
 
     total_shifts = ShiftTiming.objects.all()
     for shift in total_shifts:

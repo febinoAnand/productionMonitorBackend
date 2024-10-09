@@ -40,12 +40,12 @@ admin.site.register(Token, TokenAdmin)
 
 
 class DeviceDetailsAdmin(admin.ModelAdmin):
-    list_display = ('device_name', 'device_token', 'hardware_version', 'software_version', 'protocol', 'create_date_time')
+    list_display = ('device_name', 'device_token', 'hardware_version', 'software_version', 'protocol', 'create_date_time', 'device_status')
     search_fields = ('device_name', 'device_token', 'protocol')
     list_filter = ('device_name', 'device_token', 'protocol', 'create_date_time')
 
 class MachineDetailsAdmin(admin.ModelAdmin):
-    list_display = ('machine_id','machine_name', 'line', 'device', 'production_per_hour', 'create_date_time', 'status', 'device_status')
+    list_display = ('machine_id','machine_name', 'line', 'device', 'production_per_hour', 'create_date_time', 'status')
     search_fields = ('machine_id', 'line', 'manufacture', 'year')
     list_filter = ('machine_id', 'device', 'machine_name', 'create_date_time')
 

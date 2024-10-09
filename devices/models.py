@@ -27,6 +27,7 @@ class DeviceDetails(models.Model):
     pub_topic = models.CharField(max_length=100, null=True, blank=True)
     sub_topic = models.CharField(max_length=100, null=True, blank=True)
     api_path = models.CharField(max_length=100, null=True, blank=True)
+    device_status = models.IntegerField(default=1)
 
     def __str__(self):
         return self.device_name
@@ -56,7 +57,7 @@ class MachineDetails(models.Model):
     create_date_time = models.DateTimeField(auto_now_add=True)
     update_date_time = models.DateTimeField(auto_now=True)
     status = models.IntegerField(default=1)
-    device_status = models.IntegerField(default=1)
+    # device_status = models.IntegerField(default=1)
 
     def __str__(self):
         return self.machine_id

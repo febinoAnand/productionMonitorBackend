@@ -6,13 +6,13 @@ from .models import *
 class DeviceSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeviceDetails
-        fields = ('id','device_name','hardware_version','software_version','device_token','protocol','pub_topic','sub_topic','api_path')
+        fields = ('id','device_name','hardware_version','software_version','device_token','protocol','pub_topic','sub_topic','api_path', 'device_status')
 
 
 class MachineSerializer(serializers.ModelSerializer):
     class Meta:
         model = MachineDetails
-        fields = ['id', 'machine_id', 'machine_name', 'manufacture', 'line', 'device','production_per_hour', 'status', 'device_status']
+        fields = ['id', 'machine_id', 'machine_name', 'manufacture', 'line', 'device','production_per_hour', 'status']
 
 
 class MachineWithoutDeviceSerializer(serializers.ModelSerializer):

@@ -1820,10 +1820,11 @@ class ShiftDataViewSet(viewsets.ViewSet):
                 running_shift = 1
                 running_production_date = datetime.today().date()
 
-            # running_shift = 1
-            # running_production_date = date(2024,8,31)
-
-            # print(running_production_date, "--",running_shift)
+            try:
+                first_device = DeviceDetails.objects.first()
+                device_status = 1 if first_device and first_device.device_status == 1 else 0
+            except DeviceDetails.DoesNotExist:
+                device_status = 0
 
             for group in all_groups:
                 group_id = group.id
@@ -1845,7 +1846,6 @@ class ShiftDataViewSet(viewsets.ViewSet):
                     machine_id = machine.machine_id
                     machine_name = machine.machine_name
                     status = machine.status
-                    device_status = machine.device_status
                     machine_target = machine.production_per_hour
                     # print("currenttime->",currentTimestamp)
                     count = 0
@@ -1885,7 +1885,6 @@ class ShiftDataViewSet(viewsets.ViewSet):
                         'machine_id': machine_id,
                         'machine_name': machine_name,
                         'status': status,
-                        'device_status': device_status,
                         'production_count': count,
                         'target_production': machine_target * multiplyTraget,
                         'count_difference': 0,
@@ -1893,6 +1892,7 @@ class ShiftDataViewSet(viewsets.ViewSet):
                     }
 
             response_data = {
+                'device_status': device_status,
                 'groups': [
                     {
                         **group,
@@ -2174,8 +2174,22 @@ class IndividualShiftReportViewSet(viewsets.ViewSet):
             "machine_id": machineDetails.machine_id,
             "machine_name": machineDetails.machine_name,
             "status": machineDetails.status,
+            "latest_production_time": None,
             "shifts": []
         }
+
+        latest_production_data = ProductionData.objects.filter(
+            machine_id=machine_id,
+            production_date=searchDate
+        ).order_by('timestamp').last()
+
+        if latest_production_data:
+            if isinstance(latest_production_data.timestamp, str):
+                unix_timestamp = int(latest_production_data.timestamp)
+                timestamp = datetime.fromtimestamp(unix_timestamp)
+            else:
+                timestamp = latest_production_data.timestamp
+            machines_details_json["latest_production_time"] = timestamp.strftime("%H:%M:%S")
 
         total_shifts = ShiftTiming.objects.all()
 
