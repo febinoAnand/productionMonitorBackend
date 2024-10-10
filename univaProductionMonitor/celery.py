@@ -42,7 +42,7 @@ app.autodiscover_tasks()
 # @app.task(bind=True, ignore_result=True)
 @shared_task
 def processAndSaveMqttData(msg_data):
-    
+
     # print ("Received Data-->",msg_data)
     handle_production_data(msg_data)
     update_dashboard_data()
@@ -70,6 +70,13 @@ def processAndSaveMqttData(msg_data):
     # from emailtracking.tasks import inboxReadTask
     # inboxReadTask(arg)
 
+@app.on_after_configure.connect
+def setup_periodic_tasks(sender, **kwargs):
+    sender.add_periodic_task(60.0, call_process_and_save_mqtt_data.s())
+
+@shared_task
+def call_process_and_save_mqtt_data():
+    update_dashboard_data(periodic_task_call=True)
 # @app.on_after_configure.connect
 # def setup_periodic_tasks(sender, **kwargs):
 #     sender.add_periodic_task(5.0, mainMailReadTask.s())
@@ -114,7 +121,7 @@ def check_and_update_production_data(select_date, output_json):
     except Exception as e:
         print(f"Error updating production data: {e}")
 
-def update_dashboard_data():
+def update_dashboard_data(periodic_task_call=False):
     # print ("Updating dashboard data...")
     MACHINE_OFFLINE_TIME = settings.MACHINE_OFFLINE_TIME
     
@@ -130,14 +137,17 @@ def update_dashboard_data():
     all_groups = MachineGroup.objects.prefetch_related('machine_list').all()
 
     last_production_data = ProductionData.objects.order_by('timestamp').last()
+    device_status = 0
 
     # running_production_date = datetime.today().date()
     try:
         running_shift = last_production_data.shift_number
         running_production_date = last_production_data.production_date
+        last_production_timestamp = eval(last_production_data.timestamp)
     except:
         running_shift = 1
         running_production_date = datetime.today().date()
+        last_production_timestamp = 0
 
     # running_shift = 1
     # running_production_date = date(2024,8,31)
@@ -217,6 +227,20 @@ def update_dashboard_data():
 
                 machine.save()
 
+            if current_production_data:
+                last_machine_production_data = current_production_data.filter(machine_id=machine_id).last()
+                count = last_machine_production_data.production_count
+
+                last_production_time = datetime.fromtimestamp(last_production_timestamp)
+                current_time = datetime.fromtimestamp(currentTimeStamp)
+
+                if periodic_task_call:
+                    time_difference = (current_time - last_production_time).total_seconds()
+                    if time_difference > (1 * 60):
+                        status = 1  # Offline
+                    else:
+                        status = 0 
+
             group_data[group_id]['machines'][machine_id] = {
                 'machine_id': machine_id,
                 'machine_name': machine_name,
@@ -228,6 +252,7 @@ def update_dashboard_data():
             }
 
     response_data = {
+        'device_status': device_status,
         'groups': [
             {
                 **group,
