@@ -106,12 +106,17 @@ def publish_response(mqtt_client, device_token, response, is_error=False):
         print(f"Response Published to {publish_topic}: {response}")
         # print(f"Response Published to {publish_topic}: {response} with result {result}")
 
+        log_data = LogData.objects.last()
+        if log_data:
+            log_data.response = response
+            log_data.save() 
+
     except Exception as e:
         if enable_printing:
           print(f"An error occurred: {e}")
 
 
-def log_message(currentMessage, topic, protocol='MQTT'):
+def log_message(currentMessage, topic, protocol='MQTT', response=None):
     setting = Setting.objects.first()
     enable_printing = setting.enable_printing if setting else False
     # Extract current date and time
@@ -133,7 +138,8 @@ def log_message(currentMessage, topic, protocol='MQTT'):
         received_data=currentMessage,
         protocol=protocol,
         topic_api=topic,
-        data_id=data_id
+        data_id=data_id,
+        response=response
     )
     log_data.save()
     if enable_printing:

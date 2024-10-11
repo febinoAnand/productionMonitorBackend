@@ -16,6 +16,7 @@ from collections import defaultdict
 from configuration.models import Setting
 import time
 import math
+from univaProductionMonitor.celery import check_and_update_production_data
 
 class RawGetMethod(views.APIView):
     schema = None
@@ -933,11 +934,11 @@ class ProductionViewSet(viewsets.ViewSet):
         if enable_printing:
             print("Selected Date:", select_date)
 
-        existing_data = ProductionUpdateData.objects.filter(date=select_date).first()
-        if existing_data:
-            if enable_printing:
-                print("Returning existing production data for the selected date.")
-            return Response(existing_data.production_data, status=status.HTTP_200_OK)
+        # existing_data = ProductionUpdateData.objects.filter(date=select_date).first()
+        # if existing_data:
+        #     if enable_printing:
+        #         print("Returning existing production data for the selected date.")
+        #     return Response(existing_data.production_data, status=status.HTTP_200_OK)
 
         machine_groups = MachineGroup.objects.all()
         output_json = {
@@ -1080,6 +1081,10 @@ class ProductionViewSet(viewsets.ViewSet):
 
             output_json["machine_groups"].append(group_json)
 
+        check_and_update_production_data.delay(select_date.strftime('%Y-%m-%d'), output_json)
+
+        existing_data = ProductionUpdateData.objects.filter(date=select_date).first()
+
         try:
             if existing_data:
                 existing_data.production_data = output_json
@@ -1096,8 +1101,6 @@ class ProductionViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response({"error": f"Error saving production data: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        if enable_printing:
-            print("Output JSON", output_json)
         return Response(output_json, status=status.HTTP_200_OK)
 
 
@@ -1419,10 +1422,14 @@ class HourlyShiftReportViewSet(viewsets.ViewSet):
                         pass
 
                     for data in sub_data:
-                        count += max(0, data.production_count - last_inc_count)
+                        temp_count = data.production_count - last_inc_count
+                        count += temp_count if temp_count >= 0 else data.production_count
                         last_inc_count = data.production_count
-                        # print(f"last count -->{last_inc_count}")
                         target_production_count = data.target_production
+                        # count += max(0, data.production_count - last_inc_count)
+                        # last_inc_count = data.production_count
+                        # # print(f"last count -->{last_inc_count}")
+                        # target_production_count = data.target_production
                     # print(start_date,start_time,"-",end_date,end_time,count)
                     if target_production_count > 0:
                         last_target_production = target_production_count  # Update last non-zero target production
@@ -1813,10 +1820,11 @@ class ShiftDataViewSet(viewsets.ViewSet):
                 running_shift = 1
                 running_production_date = datetime.today().date()
 
-            # running_shift = 1
-            # running_production_date = date(2024,8,31)
-
-            # print(running_production_date, "--",running_shift)
+            try:
+                first_device = DeviceDetails.objects.first()
+                device_status = 1 if first_device and first_device.device_status == 1 else 0
+            except DeviceDetails.DoesNotExist:
+                device_status = 0
 
             for group in all_groups:
                 group_id = group.id
@@ -1884,6 +1892,7 @@ class ShiftDataViewSet(viewsets.ViewSet):
                     }
 
             response_data = {
+                'device_status': device_status,
                 'groups': [
                     {
                         **group,
@@ -2165,8 +2174,22 @@ class IndividualShiftReportViewSet(viewsets.ViewSet):
             "machine_id": machineDetails.machine_id,
             "machine_name": machineDetails.machine_name,
             "status": machineDetails.status,
+            "latest_production_time": None,
             "shifts": []
         }
+
+        latest_production_data = ProductionData.objects.filter(
+            machine_id=machine_id,
+            production_date=searchDate
+        ).order_by('timestamp').last()
+
+        if latest_production_data:
+            if isinstance(latest_production_data.timestamp, str):
+                unix_timestamp = int(latest_production_data.timestamp)
+                timestamp = datetime.fromtimestamp(unix_timestamp)
+            else:
+                timestamp = latest_production_data.timestamp
+            machines_details_json["latest_production_time"] = timestamp.strftime("%H:%M:%S")
 
         total_shifts = ShiftTiming.objects.all()
 
@@ -2255,10 +2278,14 @@ class IndividualShiftReportViewSet(viewsets.ViewSet):
                         pass
 
                     for data in sub_data:
-                        count += max(0, data.production_count - last_inc_count)
+                        temp_count = data.production_count - last_inc_count
+                        count += temp_count if temp_count >= 0 else data.production_count
                         last_inc_count = data.production_count
-                        # print(f"last count -->{last_inc_count}")
                         target_production_count = data.target_production
+                        # count += max(0, data.production_count - last_inc_count)
+                        # last_inc_count = data.production_count
+                        # # print(f"last count -->{last_inc_count}")
+                        # target_production_count = data.target_production
                     
                     if target_production_count > 0:
                         last_target_production = target_production_count  # Update last non-zero target production

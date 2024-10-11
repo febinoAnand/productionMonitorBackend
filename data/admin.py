@@ -1,6 +1,5 @@
 from django.contrib import admin
 from django.http import HttpRequest
-from .models import RawData,ProblemData,LastProblemData
 from .models import LogData, DeviceData, ProductionData, DashbaordData, ProductionUpdateData
 from import_export.admin import ExportActionMixin
 # Register your models here.
@@ -40,10 +39,17 @@ from import_export.admin import ExportActionMixin
 #     def has_change_permission(self, request, obj=None):
 #         return False
     
-class LogDataAdmin(ExportActionMixin,admin.ModelAdmin):
-    list_display = ('date', 'time', 'data_id', 'received_data')
+class LogDataAdmin(ExportActionMixin, admin.ModelAdmin):
+    list_display = ('date', 'time', 'data_id', 'get_request_display', 'response')
     search_fields = ('data_id', 'protocol', 'topic_api')
-    list_filter = ('date', 'protocol', 'data_id')
+    list_filter = ('date', 'protocol')
+
+    def get_request_display(self, obj):
+        return obj.received_data
+    get_request_display.short_description = 'Request'
+
+    def has_add_permission(self, request):
+        return False
 
 class DeviceDataAdmin(ExportActionMixin,admin.ModelAdmin):
     list_display = ('date', 'time', 'device_id', "timestamp" ,'data')
@@ -59,7 +65,7 @@ class MachineDataAdmin(admin.ModelAdmin):
 class ProductionDataAdmin(ExportActionMixin,admin.ModelAdmin):
     list_display = ( 'date', 'time','shift_number', 'machine_name', 'production_count', 'target_production','production_date','timestamp')
     search_fields = ('date','shift_name', 'machine_id','machine_name','timestamp','production_date')
-    list_filter = ('date','time','shift_number','machine_name','production_date',)
+    list_filter = ('date','shift_number','machine_name','production_date',)
 
 class DashbaordDataAdmin(admin.ModelAdmin):
     list_display = ('date','time','dashbaordData')

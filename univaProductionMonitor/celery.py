@@ -46,9 +46,9 @@ def processAndSaveMqttData(msg_data):
     # print ("Received Data-->",msg_data)
     handle_production_data(msg_data)
     update_dashboard_data()
-    send_production_updates(msg_data)
+    # send_production_updates(msg_data)
 
-    send_individual_machine_data()
+    # send_individual_machine_data()
     
     # date = msg_data.get('date')
     # machine_id = msg_data.get('machine_id')
@@ -89,7 +89,30 @@ def send_individual_machine_data():
                 }
         )
 
-
+@shared_task
+def check_and_update_production_data(select_date, output_json):
+    # print("Received Date:", select_date)
+    # print("Received Output JSON:", output_json)
+    try:
+        select_date = datetime.strptime(select_date, '%Y-%m-%d').date()
+        existing_data = ProductionUpdateData.objects.filter(date=select_date).first()
+        
+        if existing_data:
+            if existing_data.production_data != output_json:
+                existing_data.production_data = output_json
+                existing_data.save()
+            #     print(f"Production data updated for {select_date}.")
+            # else:
+            #     print(f"No changes in production data for {select_date}.")
+        else:
+            ProductionUpdateData.objects.create(
+                date=select_date,
+                production_data=output_json
+            )
+            # print(f"New production data created for {select_date}.")
+    
+    except Exception as e:
+        print(f"Error updating production data: {e}")
 
 def update_dashboard_data():
     # print ("Updating dashboard data...")
@@ -378,6 +401,7 @@ def handle_production_data(message_data):
     device_token = message_data['device_token']
     shift_number = message_data['shift_no']
     errors = []
+    production_data_list = []
 
     for machine_id, production_count in message_data.items():
         if machine_id in ['timestamp', 'device_token', 'shift_no']:
@@ -393,6 +417,7 @@ def handle_production_data(message_data):
         try:
             last_production_data = ProductionData.objects.filter(machine_id=machine.machine_id, timestamp__lt = timestamp).order_by('-timestamp').first()
         except Exception as e:
+        #    print("No last production data found")
            pass
 
         shift_instance = ShiftTiming.objects.filter(shift_number=shift_number).first()
@@ -425,10 +450,8 @@ def handle_production_data(message_data):
                         log_data_id=message_data["log_id"],
                         timestamp=timestamp
                     )
-
-                    production_data.save()
-
-                    # print ("Production:",production_data.date,production_data.time,production_data.shift_number, production_data.machine_id, production_data.production_count, production_data.target_production,production_data.production_date)
+                    production_data_list.append(production_data)
+                    # print(f'bulk list: {production_data_list}')
 
                     if enable_printing:
                         print(f'Saved production data to database: {production_data}')
@@ -443,7 +466,22 @@ def handle_production_data(message_data):
             if enable_printing:
               print(f'Error saving production data to database: {e}')
             continue
-    # print()   
+
+    if production_data_list:
+        try:
+            ProductionData.objects.bulk_create(production_data_list)
+            if enable_printing:
+                print(f'Saved {len(production_data_list)} production records in bulk.')
+        except Exception as e:
+            errors.append({
+                "status": "BULK SAVE ERROR",
+                "message": f"Error bulk saving production data: {e}",
+                "device_token": device_token,
+                "timestamp": timestamp,
+            })
+            if enable_printing:
+                print(f'Error bulk saving production data: {e}')
+
     if errors:
         for error in errors:
             response = {
@@ -473,8 +511,22 @@ def generate_shift_report(machine_id, search_date=None):
         "machine_id": machine.machine_id,
         "machine_name": machine.machine_name,
         "status": machine.status,
+        "latest_production_time": None,
         "shifts": []
-    }
+        }
+
+    latest_production_data = ProductionData.objects.filter(
+            machine_id=machine_id,
+            production_date=search_date
+        ).order_by('timestamp').last()
+
+    if latest_production_data:
+            if isinstance(latest_production_data.timestamp, str):
+                unix_timestamp = int(latest_production_data.timestamp)
+                timestamp = datetime.fromtimestamp(unix_timestamp)
+            else:
+                timestamp = latest_production_data.timestamp
+            machines_details_json["latest_production_time"] = timestamp.strftime("%H:%M:%S")
 
     total_shifts = ShiftTiming.objects.all()
     for shift in total_shifts:
@@ -568,10 +620,14 @@ def generate_shift_report(machine_id, search_date=None):
                             pass
 
                         for data in sub_data:
-                            count += max(0, data.production_count - last_inc_count)
+                            temp_count = data.production_count - last_inc_count
+                            count += temp_count if temp_count >= 0 else data.production_count
                             last_inc_count = data.production_count
-                            # print(f"last count -->{last_inc_count}")
                             target_production_count = data.target_production
+                            # count += max(0, data.production_count - last_inc_count)
+                            # last_inc_count = data.production_count
+                            # # print(f"last count -->{last_inc_count}")
+                            # target_production_count = data.target_production
                         
                         if target_production_count > 0:
                             last_target_production = target_production_count  # Update last non-zero target production
