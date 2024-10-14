@@ -45,7 +45,7 @@ def processAndSaveMqttData(msg_data):
     
     # print ("Received Data-->",msg_data)
     handle_production_data(msg_data)
-    update_dashboard_data()
+    update_dashboard_data(msg_data)
     # send_production_updates(msg_data)
 
     # send_individual_machine_data()
@@ -114,7 +114,7 @@ def check_and_update_production_data(select_date, output_json):
     except Exception as e:
         print(f"Error updating production data: {e}")
 
-def update_dashboard_data():
+def update_dashboard_data(msg_data):
     # print ("Updating dashboard data...")
     MACHINE_OFFLINE_TIME = settings.MACHINE_OFFLINE_TIME
     
@@ -128,6 +128,7 @@ def update_dashboard_data():
     group_data = {}
 
     all_groups = MachineGroup.objects.prefetch_related('machine_list').all()
+    production_counts = {machine_id: production_count for machine_id, production_count in msg_data.items() if machine_id not in ['timestamp', 'device_token', 'shift_no']}
 
     last_production_data = ProductionData.objects.order_by('timestamp').last()
 
@@ -175,7 +176,7 @@ def update_dashboard_data():
             machine_name = machine.machine_name
             machine_target = machine.production_per_hour
             # print("currenttime->",currentTimestamp)
-            count = 0
+            # count = 0
 
             # lastcount = 0
             
@@ -195,7 +196,8 @@ def update_dashboard_data():
 
             if current_production_data:
                 last_machine_production_data = current_production_data.filter(machine_id=machine_id).last()
-                count = last_machine_production_data.production_count
+            #     count = last_machine_production_data.production_count
+                count = production_counts.get(machine_id, 0)
                 # for pro_shift_data in current_production_data:
                 #     temp = pro_shift_data.production_count - lastcount
                 #     count += temp if temp >= 0 else pro_shift_data.production_count
@@ -215,7 +217,7 @@ def update_dashboard_data():
                     # print(f"Machine {machine_name} status changed to online.")
                
 
-                machine.save()
+            machine.save()
 
             group_data[group_id]['machines'][machine_id] = {
                 'machine_id': machine_id,
