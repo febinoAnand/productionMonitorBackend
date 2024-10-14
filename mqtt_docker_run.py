@@ -106,12 +106,17 @@ def publish_response(mqtt_client, device_token, response, is_error=False):
         print(f"Response Published to {publish_topic}: {response}")
         # print(f"Response Published to {publish_topic}: {response} with result {result}")
 
+        log_data = LogData.objects.last()
+        if log_data:
+            log_data.response = response
+            log_data.save() 
+
     except Exception as e:
         if enable_printing:
           print(f"An error occurred: {e}")
 
 
-def log_message(currentMessage, topic, protocol='MQTT'):
+def log_message(currentMessage, topic, protocol='MQTT', response=None):
     setting = Setting.objects.first()
     enable_printing = setting.enable_printing if setting else False
     # Extract current date and time
@@ -133,7 +138,8 @@ def log_message(currentMessage, topic, protocol='MQTT'):
         received_data=currentMessage,
         protocol=protocol,
         topic_api=topic,
-        data_id=data_id
+        data_id=data_id,
+        response=response
     )
     log_data.save()
     if enable_printing:
@@ -241,24 +247,44 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
 
     timestamp = message_data['timestamp']
     
-
     # "PHR":18.0000,"PMIN":32.0000,"PSEC":16.0000
     
     # dt = datetime.datetime.utcfromtimestamp(timestamp)
-    dt = datetime.datetime.fromtimestamp(timestamp)
-    message_date = dt.date()
-    message_time = dt.time()
+    # dt = datetime.datetime.fromtimestamp(timestamp)
+    # message_date = dt.date()
+    # message_time = dt.time()
+    # print("time",message_time)
 
-    if 'PHR' in message_data and 'PMIN' in message_data and 'PSEC' in message_data:
+    device_token = message_data.get('device_token', '')
+    errors = []
+
+    #all this data will come from json 
+    if 'PHR' in message_data and 'PMIN' in message_data and 'PSEC' in message_data and 'PD' in message_data and 'PM' in message_data and 'PY' in message_data:
+        # getting hr min sec
         plcHR = int(message_data['PHR'])
         plcMIN = int(message_data['PMIN'])
         plcSEC = int(message_data['PSEC'])
-        # print (plcHR,plcMIN,plcSEC)
-        message_time = datetime.time(plcHR,plcMIN,plcSEC)
-    
-    # print("time",message_time)
-    device_token = message_data.get('device_token', '')
-    errors = []
+
+        # getting date month year
+        plcDate = int(message_data['PD'])
+        plcMonth = int(message_data['PM'])
+        plcYear = int(message_data['PY'])
+
+        message_date = datetime.date(plcYear, plcMonth, plcDate)
+        message_time = datetime.time(plcHR, plcMIN, plcSEC)
+
+    else:
+        errors.append({
+            "status": "INVALID TIMESTAMP - PHR",
+            "message": "PHR PMIN PSEC Time Stamp Not Received",
+            "device_token": device_token,
+            "timestamp": timestamp
+        })
+
+        if enable_printing:
+           print('PHR PMIN PSEC Time Stamp Not Received')
+        publish_response(mqtt_client, device_token, errors, is_error=True)
+        return False
     
     try:
         device = DeviceDetails.objects.get(device_token=device_token)
@@ -276,6 +302,7 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
         publish_response(mqtt_client, device_token, errors, is_error=True)
         # Return False as the device was not found
         return False
+    
     
         # Retrieve the first data entry for the device based on the timestamp
     deviceFirstData = DeviceData.objects.filter(device_id__device_token=device_token).order_by('data__timestamp').first()
@@ -297,15 +324,6 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
             publish_response(mqtt_client, device_token, errors, is_error=True)
             return False
     else:
-        # Handle case where no prior data exists or the timestamp key is missing
-        # errors.append({
-        #     "status": "MISSING DATA",
-        #     "message": "No previous timestamp found for the device or timestamp is missing",
-        #     "device_token": device_token
-        # })
-        # print('No previous timestamp found for device_token:', device_token)
-        # publish_response(mqtt_client, device_token, errors, is_error=True)
-        # return False
         if enable_printing:
            print('No previous data found. Saving this as the first data entry for device_token:', device_token)
     
@@ -334,45 +352,6 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
         publish_response(mqtt_client, device_token, errors, is_error=True)
         return False
 
-    # for key, value in message_data.items():
-    #     if key in ['timestamp', 'device_token', 'cmd', 'shift_no']:
-    #         continue  # Skip non-machine ID keys
-
-    #     machine_id = key
-    #     machine_data_content = value
-
-    #     try:
-    #         machine = MachineDetails.objects.get(machine_id=machine_id)
-    #     except MachineDetails.DoesNotExist:
-    #         if enable_printing:
-    #           print(f'Machine ID mismatch for {machine_id}')
-    #         continue  # Skip this machine_id and move to the next one
-
-    #     try:
-    #         machine_data = MachineData(
-    #             date=message_date,
-    #             time=message_time,
-    #             machine_id=machine,
-    #             data={machine_id: machine_data_content},
-    #             device_id=device,
-    #             log_data_id=log_data,
-    #             timestamp=str(timestamp)
-    #         )
-    #         machine_data.save()
-    #         if enable_printing:
-    #           print(f'Saved machine data to database: {machine_data}')
-
-    #     except Exception as e:
-    #         errors.append({
-    #             "status": "DATA SAVE ERROR",
-    #             "message": f"Error saving machine data: {e}",
-    #             "device_token": device_token,
-    #             "timestamp": timestamp,
-    #         })
-    #         if enable_printing:
-    #           print(f'Error saving machine data to database: {e}')
-    #         continue  # Continue with the next machine data
-
     device_data = DeviceData(
         date=message_date,
         time=message_time,
@@ -396,10 +375,10 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
     if enable_printing:
       print(f'Saved device data to database: {device_data}')
     
-    if errors:
-        for error in errors:
-            publish_response(mqtt_client, device_token, error, is_error=True)
-        return False
+    # if errors:
+    #     for error in errors:
+    #         publish_response(mqtt_client, device_token, error, is_error=True)
+    #     return False
 
     return True
 

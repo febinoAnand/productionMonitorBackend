@@ -27,6 +27,7 @@ class DeviceDetails(models.Model):
     pub_topic = models.CharField(max_length=100, null=True, blank=True)
     sub_topic = models.CharField(max_length=100, null=True, blank=True)
     api_path = models.CharField(max_length=100, null=True, blank=True)
+    device_status = models.IntegerField(default=1)
 
     def __str__(self):
         return self.device_name
@@ -56,6 +57,7 @@ class MachineDetails(models.Model):
     create_date_time = models.DateTimeField(auto_now_add=True)
     update_date_time = models.DateTimeField(auto_now=True)
     status = models.IntegerField(default=1)
+    # device_status = models.IntegerField(default=1)
     offline_time = models.IntegerField(default=5 * 60)
 
     def __str__(self):
@@ -92,10 +94,11 @@ class ShiftTimings(models.Model):
         return str(self.shift_number)  # Convert to string
 
 class ShiftTiming(models.Model):
-    # _id=models.AutoField(primary_key=True, default=1)
+    id = models.AutoField(primary_key=True)
     shift_number = models.IntegerField(blank=False, null=False ,default=1)  # Required field
     start_time = models.TimeField(blank=True, null=True)  # Optional field
     end_time = models.TimeField(blank=True, null=True)  # Optional field
+    start_hours = models.TimeField(blank=True, null=True)  # Optional field
     shift_name = models.CharField(max_length=45, blank=True, null=True)  # Optional field
     create_date_time = models.DateTimeField(auto_now_add=True)
     update_date_time = models.DateTimeField(auto_now=True)
@@ -133,5 +136,3 @@ class Token(models.Model):
     deviceID = models.OneToOneField(DeviceDetails,blank=False,null=False,on_delete=models.CASCADE,related_name="deviceToken")
     token = models.CharField(max_length=30)
     createdAt = models.DateTimeField(auto_now_add=True)
-
-

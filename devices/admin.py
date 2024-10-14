@@ -40,7 +40,7 @@ admin.site.register(Token, TokenAdmin)
 
 
 class DeviceDetailsAdmin(admin.ModelAdmin):
-    list_display = ('device_name', 'device_token', 'hardware_version', 'software_version', 'protocol', 'create_date_time')
+    list_display = ('device_name', 'device_token', 'hardware_version', 'software_version', 'protocol', 'create_date_time', 'device_status')
     search_fields = ('device_name', 'device_token', 'protocol')
     list_filter = ('device_name', 'device_token', 'protocol', 'create_date_time')
 
@@ -56,7 +56,7 @@ class MachineDetailsAdmin(admin.ModelAdmin):
 
 
 class ShiftTimingAdmin(admin.ModelAdmin):
-    list_display = ('shift_number','shift_name', 'start_time', 'end_time', 'create_date_time')
+    list_display = ('shift_number','shift_name', 'start_time', 'end_time', 'start_hours', 'create_date_time')
     search_fields = ('shift_name',)
     list_filter = ('shift_number', 'shift_name', 'create_date_time')
 

@@ -6,7 +6,7 @@ from .models import *
 class DeviceSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeviceDetails
-        fields = ('id','device_name','hardware_version','software_version','device_token','protocol','pub_topic','sub_topic','api_path')
+        fields = ('id','device_name','hardware_version','software_version','device_token','protocol','pub_topic','sub_topic','api_path', 'device_status')
 
 
 class MachineSerializer(serializers.ModelSerializer):
@@ -108,4 +108,4 @@ class MachineGroupSerializer(serializers.ModelSerializer):
 class ShiftTimingSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShiftTiming
-        fields = ['shift_number', 'start_time', 'end_time', 'shift_name', 'create_date_time', 'update_date_time']
+        fields = ['id','shift_number', 'start_time', 'end_time', 'start_hours', 'shift_name', 'create_date_time', 'update_date_time']

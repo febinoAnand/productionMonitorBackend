@@ -14,12 +14,12 @@ class DataConsumer(WebsocketConsumer):
         print ("connected successfully")
         # self.send(text_data=json.dumps({"message": "Test connection successfull"}))
 
-    def receive(self, text_data=None, bytes_data=None):
-        text_data_json = json.loads(text_data)
-        message = text_data_json["message"]
+    # def receive(self, text_data=None, bytes_data=None):
+    #     text_data_json = json.loads(text_data)
+    #     message = text_data_json["message"]
 
-        # self.send(text_data=json.dumps({"message": message}))
-        print("message from",self.channel_name,">",message)
+    #     # self.send(text_data=json.dumps({"message": message}))
+    #     print("message from",self.channel_name,">",message)
     
 
     def sendmqttmessage(self, event):
@@ -51,20 +51,20 @@ class ProductionConsumer(WebsocketConsumer):
         )
         print("WebSocket disconnected")
 
-    def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message = text_data_json.get('message', '')
-        print(f"Received message: {message}")
-        self.send_to_group(message)
+    # def receive(self, text_data):
+    #     text_data_json = json.loads(text_data)
+    #     message = text_data_json.get('message', '')
+    #     print(f"Received message: {message}")
+    #     self.send_to_group(message)
 
-    def send_to_group(self, message):
-        self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'send_message',
-                'message': message
-            }
-        )
+    # def send_to_group(self, message):
+    #     self.channel_layer.group_send(
+    #         self.room_group_name,
+    #         {
+    #             'type': 'send_message',
+    #             'message': message
+    #         }
+    #     )
 
     def send_message(self, event):
         message = event.get('message', {})
@@ -72,14 +72,18 @@ class ProductionConsumer(WebsocketConsumer):
 
 class ShiftReportConsumer(WebsocketConsumer):
     def connect(self):
-        self.room_name = "shift_updates"
-        self.room_group_name = "shift_groups"
-        self.channel_layer.group_add(
+        machine_id = self.scope['url_route']['kwargs']['machine_id']
+        print ('machine_id is->',machine_id)
+        self.room_name = machine_id
+        self.room_group_name = machine_id
+        async_to_sync(self.channel_layer.group_add)(
             self.room_group_name,
             self.channel_name
         )
+        
         self.accept()
-        print(f"WebSocket connected: {self.channel_name}")
+
+        print(f"WebSocket connected ShiftReportConsumer: {self.channel_name}")
 
     def disconnect(self, close_code):
         self.channel_layer.group_discard(
@@ -88,21 +92,13 @@ class ShiftReportConsumer(WebsocketConsumer):
         )
         print(f"WebSocket disconnected: {self.channel_name}, close code: {close_code}")
 
-    def receive(self, text_data):
-        print(f"Raw received data: {text_data}")
-        try:
-            text_data_json = json.loads(text_data)
-            message = text_data_json.get('message', '')
-            print(f"Received message: {message}")
-            self.shift_report(message)
-        except json.JSONDecodeError:
-            print("Received invalid JSON")
-        except Exception as e:
-            print(f"Error processing message: {e}")
 
-    def shift_report(self, message):
-        self.send(text_data=json.dumps({
-            'type': 'shift_report',
-            'message': message
-        }))
-        print(f"Sent message: {message}")
+    def receive(self, text_data):
+        text_data_json = json.loads(text_data)
+        # message = text_data_json.get('message', '')
+        print(f"Received message: {text_data_json}")
+        self.send_to_group(text_data_json)
+
+    def send_message(self, event):
+        print ("sending Data",event)
+        self.send(text_data=json.dumps(event['value']))
