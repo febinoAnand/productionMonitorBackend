@@ -12,7 +12,7 @@ class DeviceSerializer(serializers.ModelSerializer):
 class MachineSerializer(serializers.ModelSerializer):
     class Meta:
         model = MachineDetails
-        fields = ['id', 'machine_id', 'machine_name', 'manufacture', 'line', 'device','production_per_hour', 'status']
+        fields = ['id', 'machine_id', 'machine_name', 'manufacture', 'line', 'device','production_per_hour', 'status', 'offline_time']
 
 
 class MachineWithoutDeviceSerializer(serializers.ModelSerializer):

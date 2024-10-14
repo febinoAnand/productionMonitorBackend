@@ -56,6 +56,7 @@ class MachineDetails(models.Model):
     create_date_time = models.DateTimeField(auto_now_add=True)
     update_date_time = models.DateTimeField(auto_now=True)
     status = models.IntegerField(default=1)
+    offline_time = models.IntegerField(default=5 * 60)
 
     def __str__(self):
         return self.machine_id
