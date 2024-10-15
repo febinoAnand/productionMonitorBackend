@@ -206,7 +206,7 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 
 
-CSRF_TRUSTED_ORIGINS = ['https://*.127.0.0.1','https://productionb.univa.cloud','https://production.univa.cloud','http://localhost:3000','http://localhost:9020']
+CSRF_TRUSTED_ORIGINS = ['https://*.127.0.0.1','https://productionb.univa.cloud','https://production.univa.cloud','http://localhost:3000','http://localhost:9020','https://hlmandob.febinosolutions.com']
 
 
 
