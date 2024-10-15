@@ -1,0 +1,15 @@
+[
+  {
+    "model": "Userauth.Setting",
+    "pk": 1,
+    "fields": {
+      "unAuth_user_expiry_time": 900,
+      "all_user_expiry_time": 86400,
+      "OTP_resend_interval": 20,
+      "OTP_valid_time":600,
+      "OTP_call_count":5,
+      "OTP_wrong_count":3
+    }
+  }
+  ]
+  

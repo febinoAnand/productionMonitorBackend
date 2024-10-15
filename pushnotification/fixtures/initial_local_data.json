@@ -1,0 +1,10 @@
+[
+  {
+    "model": "pushnotification.Setting",
+    "pk": 1,
+    "fields": {
+      "application_name": "expo",
+      "application_id":"c0ae22a5-d9c8-4dc3-80c2-76edab600718"
+    }
+  }
+]

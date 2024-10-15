@@ -27,7 +27,7 @@ class DeviceDetails(models.Model):
     pub_topic = models.CharField(max_length=100, null=True, blank=True)
     sub_topic = models.CharField(max_length=100, null=True, blank=True)
     api_path = models.CharField(max_length=100, null=True, blank=True)
-    device_status = models.IntegerField(default=1)
+    device_status = models.IntegerField(default=1,null=True,blank=True)
 
     def __str__(self):
         return self.device_name

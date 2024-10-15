@@ -1,8 +1,22 @@
 version: '3.8'
 
 services:
+    postgres:
+        image: postgres:16
+        container_name: postgres_db
+        environment:
+            POSTGRES_USER: admin
+            POSTGRES_PASSWORD: admin
+            POSTGRES_DB: dbpostgres
+            
+        ports:
+            - 5432:5432
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+
     redis:
         image: redis:7.0.11-alpine
+        container_name: redis_db
         command: redis-server --requirepass hlmando_9182837465
         ports:
             - 6379:6379
@@ -22,6 +36,9 @@ services:
             - SECRET_KEY="django-insecure-gstje5mbc3qm)j+@o@l)=kw6w3xo_2(ryf3q+q)^^ih@k)2&be"
             - ALLOWED_HOST=localhost, 127.0.0.1
             - DATABASE_URL=postgres://admin:admin@postgres_db:5432/dbpostgres
+            - ENV=${ENV}
+            - POSTGRES_HOST=postgres
+            - POSTGRES_PORT=5432
 
         depends_on:
             - redis
@@ -41,13 +58,16 @@ services:
             - SECRET_KEY='django-insecure-gstje5mbc3qm)j+@o@l)=kw6w3xo_2(ryf3q+q)^^ih@k)2&be'
             - ALLOWED_HOST=localhost, 127.0.0.1
             - DATABASE_URL=postgres://admin:admin@postgres_db:5432/dbpostgres
+            - ENV=${ENV}
+            - POSTGRES_HOST=postgres
+            - POSTGRES_PORT=5432
             # - CELERY_TIMEZONE= "Asia/kolkata"
             # - CELERY_TASK_TRACK_STARTED= True
             # - CELERY_TASK_TIME_LIMIT= 30 * 60
             # - CELERY_BROKER_URL= "redis://localhost:6379"
             # - CELERY_BACKEND= "redis://localhost:6379"
         depends_on:
-            - redis
+            - django
 
     mqtt-client:
         container_name: mqttClient
@@ -63,25 +83,24 @@ services:
             - SECRET_KEY='django-insecure-gstje5mbc3qm)j+@o@l)=kw6w3xo_2(ryf3q+q)^^ih@k)2&be'
             - ALLOWED_HOST=localhost, 127.0.0.1
             - DATABASE_URL=postgres://admin:admin@postgres_db:5432/dbpostgres
+            - ENV=${ENV}
+            - POSTGRES_HOST=postgres
+            - POSTGRES_PORT=5432
             # - CELERY_TIMEZONE= "Asia/kolkata"
             # - CELERY_TASK_TRACK_STARTED= True
             # - CELERY_TASK_TIME_LIMIT= 30 * 60
             # - CELERY_BROKER_URL= "redis://localhost:6379"
             # - CELERY_BACKEND= "redis://localhost:6379"
+
+        deploy:
+            restart_policy:
+                condition: on-failure
+                delay: 10s
+                max_attempts: 3
+                window: 120s
         depends_on:
             - celery
 
-    postgres:
-        image: postgres:16
-        container_name: postgres_db
-        environment:
-            POSTGRES_USER: admin
-            POSTGRES_PASSWORD: admin
-            POSTGRES_DB: dbpostgres
-        ports:
-            - "5432:5432"
-        volumes:
-            - postgres_data:/var/lib/postgresql/data
-
+    
 volumes:
     postgres_data:

@@ -24,9 +24,13 @@ from univaProductionMonitor.celery import processAndSaveMqttData
 subscribed_topics = set()
 
 
+enable_printing = False
+
 def on_connect(client, userdata, flags, rc):
-    setting = Setting.objects.first()
-    enable_printing = setting.enable_printing if setting else False
+    
+    global enable_printing
+
+    
 
     if rc == 0:
         if enable_printing:
@@ -63,9 +67,10 @@ def handle_device_details_save(sender, instance, **kwargs):
 
 @receiver(post_save, sender=MqttSettings)
 def subscribe_to_topic(sender, instance, **kwargs):
-    setting = Setting.objects.first()
-    enable_printing = setting.enable_printing if setting else False
+    # setting = Setting.objects.first()
+    # enable_printing = setting.enable_printing if setting else False
     global mqtt_client
+    global enable_printing
 
     if instance.sub_topic:
         mqtt_client.subscribe(instance.sub_topic)
@@ -73,8 +78,9 @@ def subscribe_to_topic(sender, instance, **kwargs):
           print(f'Subscribed to {instance.sub_topic}')
 
 def subscribe_to_topic(sub_topic):
-    setting = Setting.objects.first()
-    enable_printing = setting.enable_printing if setting else False
+    # setting = Setting.objects.first()
+    # enable_printing = setting.enable_printing if setting else False
+    global enable_printing
 
     if sub_topic not in subscribed_topics:
         mqtt_client.subscribe(sub_topic)
@@ -87,8 +93,9 @@ def subscribe_to_topic(sub_topic):
         
 
 def publish_response(mqtt_client, device_token, response, is_error=False):
-    setting = Setting.objects.first()
-    enable_printing = setting.enable_printing if setting else False
+    # setting = Setting.objects.first()
+    # enable_printing = setting.enable_printing if setting else False
+    global enable_printing
     try:
         # Fetch the first MqttSettings instance
         mqtt_settings = MqttSettings.objects.first()
@@ -117,8 +124,9 @@ def publish_response(mqtt_client, device_token, response, is_error=False):
 
 
 def log_message(currentMessage, topic, protocol='MQTT', response=None):
-    setting = Setting.objects.first()
-    enable_printing = setting.enable_printing if setting else False
+    # setting = Setting.objects.first()
+    # enable_printing = setting.enable_printing if setting else False
+    global enable_printing
     # Extract current date and time
     current_date = datetime.date.today()
     current_time = datetime.datetime.now().time()
@@ -200,9 +208,10 @@ def on_message(mqtt_client, userdata, msg):
 
 
 def handle_command_message(mqtt_client, msg, message_data, log_data):
-    setting = Setting.objects.first()
-    enable_printing = setting.enable_printing if setting else False
+    # setting = Setting.objects.first()
+    # enable_printing = setting.enable_printing if setting else False
 
+    global enable_printing
 
     current_timestamp = int(datetime.datetime.now().timestamp())
     device_token = message_data['device_token']
@@ -242,9 +251,10 @@ def handle_command_message(mqtt_client, msg, message_data, log_data):
 
 
 def handle_machine_data(mqtt_client, msg, message_data, log_data):
-    setting = Setting.objects.first()
-    enable_printing = setting.enable_printing if setting else False
+    # setting = Setting.objects.first()
+    # enable_printing = setting.enable_printing if setting else False
 
+    global enable_printing
     timestamp = message_data['timestamp']
     
     # "PHR":18.0000,"PMIN":32.0000,"PSEC":16.0000
@@ -383,8 +393,10 @@ def handle_machine_data(mqtt_client, msg, message_data, log_data):
     return True
 
 def handle_production_data(mqtt_client, message_data, log_data):
-    setting = Setting.objects.first()
-    enable_printing = setting.enable_printing if setting else False
+    # setting = Setting.objects.first()
+    # enable_printing = setting.enable_printing if setting else False
+
+    global enable_printing
 
     end_shift_time_str = settings.END_SHIFT_TIME
     end_shift_number = settings.END_SHIFT_NUMBER
@@ -512,8 +524,10 @@ RECONNECT_DELAY = 5  # Delay between reconnection attempts in seconds
 
 
 def get_mqtt_settings():
-    setting = Setting.objects.first()
-    enable_printing = setting.enable_printing if setting else False
+    # setting = Setting.objects.first()
+    # enable_printing = setting.enable_printing if setting else False
+
+    global enable_printing
 
     try:
         mqtt_settings = MqttSettings.objects.first()
@@ -538,8 +552,10 @@ def get_mqtt_settings():
 
 
 def on_disconnect(client, userdata, rc):
-    setting = Setting.objects.first()
-    enable_printing = setting.enable_printing if setting else False
+    # setting = Setting.objects.first()
+    # enable_printing = setting.enable_printing if setting else False
+
+    global enable_printing
 
     if rc != 0:
         if enable_printing:
@@ -548,8 +564,11 @@ def on_disconnect(client, userdata, rc):
 
 
 def attempt_reconnect(client):
-    setting = Setting.objects.first()
-    enable_printing = setting.enable_printing if setting else False
+    # setting = Setting.objects.first()
+    # enable_printing = setting.enable_printing if setting else False
+
+    global enable_printing
+
     attempt = 0
     while attempt < MAX_RECONNECT_ATTEMPTS:
         try:
@@ -569,8 +588,18 @@ def attempt_reconnect(client):
        print("Failed to reconnect after multiple attempts.")
 
 def start_mqtt_client():
-    setting = Setting.objects.first()
-    enable_printing = setting.enable_printing if setting else False
+    # setting = Setting.objects.first()
+    # enable_printing = setting.enable_printing if setting else False
+
+    global enable_printing
+    print_setting = False
+    try:
+        print_setting = Setting.objects.first()
+    except:
+        pass
+
+    if print_setting:
+        enable_printing = print_setting.enable_printing
 
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message

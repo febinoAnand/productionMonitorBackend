@@ -362,8 +362,15 @@ def send_to_socket(websocket_data):
 
 
 def handle_production_data(message_data):
-    setting = Setting.objects.first()
-    enable_printing = setting.enable_printing if setting else False
+    enable_printing = False
+
+    try:
+        setting = Setting.objects.first()
+    except:
+        pass
+
+    if setting:
+        enable_printing = setting.enable_printing
 
     end_shift_time_str = settings.END_SHIFT_TIME
     end_shift_number = settings.END_SHIFT_NUMBER
@@ -435,7 +442,9 @@ def handle_production_data(message_data):
         try:
             if not last_production_data or last_production_data.shift_number != shift_instance.shift_number or last_production_data.target_production != machine.production_per_hour or last_production_data.production_count != production_count or last_production_data.production_date != production_date:
                 if last_production_data and production_count == 0 and last_production_data.shift_number == shift_instance.shift_number:
-                   pass
+                    pass
+                elif last_production_data and (last_production_data.shift_number != shift_instance.shift_number and production_count != 0 and production_count == last_production_data.production_count):
+                    pass
                 else:
                     production_data = ProductionData(
                         date=message_date,

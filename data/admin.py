@@ -40,7 +40,8 @@ from import_export.admin import ExportActionMixin
 #         return False
     
 class LogDataAdmin(ExportActionMixin, admin.ModelAdmin):
-    list_display = ('date', 'time', 'data_id', 'get_request_display', 'response')
+    list_display = ('date', 'time', 'data_id', 'get_request_display')
+    # list_display = ('date', 'time', 'data_id', 'get_request_display', 'response')
     search_fields = ('data_id', 'protocol', 'topic_api')
     list_filter = ('date', 'protocol')
 

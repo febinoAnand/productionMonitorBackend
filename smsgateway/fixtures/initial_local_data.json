@@ -1,0 +1,20 @@
+[
+  {
+    "model": "smsgateway.SMSNumber",
+    "pk": 1,
+    "fields": {
+      "smsnumber": "+15633623216",
+      "description":"twillio"
+    }
+  },
+  {
+      "model": "smsgateway.Setting",
+      "pk": 1,
+      "fields": {
+        "sid":"",
+        "auth_token":"",
+        "is_active":false
+      }
+  }
+
+]

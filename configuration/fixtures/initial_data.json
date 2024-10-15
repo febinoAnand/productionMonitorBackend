@@ -1,0 +1,27 @@
+[
+    {
+      "model": "configuration.MqttSettings",
+      "pk": 1,
+      "fields": {
+        "_id": "1",
+        "server_name_alias": "Univa MQTT",
+        "host": "mqtt.univa.cloud",
+        "port":1883,
+        "username":"admin",
+        "password":"admin",
+        "qos":0,
+        "keepalive":60,
+        "pub_topic":"server_publish_topic",
+        "sub_topic":"server_subscribe_topic/#"
+      }
+    },
+    {
+        "model": "configuration.Setting",
+        "pk": 1,
+        "fields": {
+          "enable_printing":false
+        }
+    }
+
+  ]
+  
