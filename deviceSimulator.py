@@ -9,26 +9,41 @@ from datetime import datetime, timedelta
 MQTT_BROKER = "mqtt.univa.cloud"
 MQTT_PORT = 1883
 
-publish_topic = "device/data/test"
-device_token = "pcm123"
+publish_topic = "subscribe_topic"
+device_token = ["dev1", "dev2", "dev3", "dev4", "dev5"]
 
 base_payload = {
-    "device_token": device_token,
-    "M001": 0.0000, "M002": 0.0000, "M003": 0.0000, "shift_no": 1.0000,
-    "M004": 0.0000, "M005": 0.0000, "M006": 0.0000, "M007": 0.0000, "M008": 0.0000,
-    "M009": 0.0000, "M010": 0.0000, "M011": 0.0000, "M012": 0.0000, 
-    "M013": 0.0000, "M014": 0.0000, "M015": 0.0000, "M016": 0.0000,
-    "M017": 0.0000, "M018": 0.0000, "PD": 3.0000, "PM": 10.0000, "PY": 2024.0000,
-    "PHR": 18.0000, "PMIN": 36.0000, "PSEC": 29.0000, "SHIFTRST": 0.0000, 
+    # "device_token": device_token,
+    # "M001": 0.0000, "M002": 0.0000, "M003": 0.0000, "shift_no": 1.0000,
+    # "M004": 0.0000, "M005": 0.0000, "M006": 0.0000, "M007": 0.0000, "M008": 0.0000,
+    # "M009": 0.0000, "M010": 0.0000, "M011": 0.0000, "M012": 0.0000, 
+    # "M013": 0.0000, "M014": 0.0000, "M015": 0.0000, "M016": 0.0000,
+    # "M017": 0.0000, "M018": 0.0000, "PD": 3.0000, "PM": 10.0000, "PY": 2024.0000,
+    # "PHR": 18.0000, "PMIN": 36.0000, "PSEC": 29.0000, "SHIFTRST": 0.0000, 
+    # "timestamp": 1727960724
+    "device_token": "",
+    "shift_no": 1.0000,
     "timestamp": 1727960724
 }
 
+machines_per_device = {
+    "dev1": ["d001", "d002"],
+    "dev2": ["d003", "d004"],
+    "dev3": ["d005", "d006"],
+    "dev4": ["d007", "d008"],
+    "dev5": ["d009", "d010"]
+}
 
 incremental_step = {
-    "M001": 10.0, "M002": 4.0, "M003": 5.0, "M004": 15.0, "M005": 20.0,
-    "M006": 30.0, "M007": 8.0, "M008": 6.0, "M009": 1.0, "M010": 3.0,
-    "M011": 4.0, "M012": 11.0, "M013": 15.0, "M014": 9.0, "M015": 7.0,
-    "M016": 16.0, "M017": 13.0, "M018": 5.0
+    # "M001": 10.0, "M002": 4.0, "M003": 5.0, "M004": 15.0, "M005": 20.0,
+    # "M006": 30.0, "M007": 8.0, "M008": 6.0, "M009": 1.0, "M010": 3.0,
+    # "M011": 4.0, "M012": 11.0, "M013": 15.0, "M014": 9.0, "M015": 7.0,
+    # "M016": 16.0, "M017": 13.0, "M018": 5.0
+    "d001": 10.0, "d002": 10.0,
+    "d003": 4.0, "d004": 4.0,
+    "d005": 5.0, "d006": 5.0,
+    "d007": 15.0, "d008": 15.0,
+    "d009": 20.0, "d010": 20.0
 }
 
 
@@ -52,7 +67,8 @@ def update_shift_no_and_reset_if_needed(payload, previous_shift_no):
 
     
     if new_shift_no != previous_shift_no:
-        for key in [f"M{str(i).zfill(3)}" for i in range(1, 19)]:
+        # for key in [f"M{str(i).zfill(3)}" for i in range(1, 19)]:
+        for key in machines_per_device[payload["device_token"]]:
             payload[key] = 0.0000
 
     payload["shift_no"] = new_shift_no
@@ -89,7 +105,8 @@ def simulate_device(device_id):
 
 
     current_payload = base_payload.copy()
-    current_payload["device_token"] = device_token
+    # current_payload["device_token"] = device_token
+    current_payload["device_token"] = device_token[device_id - 1]
     previous_shift_no = current_payload["shift_no"]
 
     last_increment_time = time.time()
@@ -97,8 +114,10 @@ def simulate_device(device_id):
     while True:
         current_time = time.time()
         if current_time - last_increment_time >= 30:
-            for key in incremental_step:
-                current_payload[key] = round(current_payload[key] + incremental_step[key],3)
+            # for key in incremental_step:
+            #     current_payload[key] = round(current_payload[key] + incremental_step[key],3)
+            for machine in machines_per_device[current_payload["device_token"]]:
+                current_payload[machine] = round(current_payload.get(machine, 0.0) + incremental_step[machine], 3)
             last_increment_time = current_time
 
 
@@ -120,8 +139,7 @@ def simulate_device(device_id):
 
         time.sleep(1)
 
-
-def simulate_multiple_devices(device_count=100):
+def simulate_multiple_devices(device_count=5):
     threads = []
     for device_id in range(1, device_count + 1):
         thread = threading.Thread(target=simulate_device, args=(device_id,))
@@ -134,4 +152,4 @@ def simulate_multiple_devices(device_count=100):
 
 
 if __name__ == "__main__":
-    simulate_multiple_devices(1)
+    simulate_multiple_devices(5)
