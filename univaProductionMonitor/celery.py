@@ -170,7 +170,7 @@ def update_dashboard_data():
             if multiplyTarget > 8:
                 multiplyTarget = 8
 
-        for machine in group.machine_list.all():
+        for machine in group.machine_list.all().order_by('machine_name'):
             machine_id = machine.machine_id
             machine_name = machine.machine_name
             machine_target = machine.production_per_hour
