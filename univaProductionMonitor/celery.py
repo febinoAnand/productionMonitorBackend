@@ -235,11 +235,11 @@ def update_dashboard_data(periodic_task_call=False):
                 current_time = datetime.fromtimestamp(currentTimeStamp)
 
                 if periodic_task_call:
-                    time_difference = (current_time - last_production_time).total_seconds()
+                    time_difference = (last_production_time - current_time).total_seconds()
                     if time_difference > (1 * 60):
-                        status = 1  # Offline
+                        device_status = 1  # Offline
                     else:
-                        status = 0 
+                        device_status = 0 
 
             group_data[group_id]['machines'][machine_id] = {
                 'machine_id': machine_id,
