@@ -910,6 +910,7 @@ class GroupMachineDataViewSet(viewsets.ViewSet):
 class ProductionViewSet(viewsets.ViewSet):
     http_method_names = ['post']
 
+
     def create(self, request):
         setting = Setting.objects.first()
         enable_printing = setting.enable_printing if setting else False
@@ -934,11 +935,11 @@ class ProductionViewSet(viewsets.ViewSet):
         if enable_printing:
             print("Selected Date:", select_date)
 
-        # existing_data = ProductionUpdateData.objects.filter(date=select_date).first()
-        # if existing_data:
-        #     if enable_printing:
-        #         print("Returning existing production data for the selected date.")
-        #     return Response(existing_data.production_data, status=status.HTTP_200_OK)
+        existing_data = ProductionUpdateData.objects.filter(date=select_date).first()
+        if existing_data:
+            if enable_printing:
+                print("Returning existing production data for the selected date.")
+            return Response(existing_data.production_data, status=status.HTTP_200_OK)
 
         machine_groups = MachineGroup.objects.all()
         output_json = {
