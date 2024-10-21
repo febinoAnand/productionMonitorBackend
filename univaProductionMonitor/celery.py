@@ -192,27 +192,31 @@ def update_dashboard_data():
             #     lastcount = first_before_data.production_count
             # except:
             #     pass
-
+            status = 0
             if current_production_data:
                 last_machine_production_data = current_production_data.filter(machine_id=machine_id).last()
-                count = last_machine_production_data.production_count
-                # for pro_shift_data in current_production_data:
-                #     temp = pro_shift_data.production_count - lastcount
-                #     count += temp if temp >= 0 else pro_shift_data.production_count
-                #     lastcount = pro_shift_data.production_count
+                if last_machine_production_data:
+                    count = last_machine_production_data.production_count
+                    # for pro_shift_data in current_production_data:
+                    #     temp = pro_shift_data.production_count - lastcount
+                    #     count += temp if temp >= 0 else pro_shift_data.production_count
+                    #     lastcount = pro_shift_data.production_count
 
-                
-                
+                    
+                    
 
-                # status = 0
-                time_difference = currentTimeStamp - eval(last_machine_production_data.timestamp)
-                # print (currentTimeStamp,eval(last_machine_production_data.timestamp), MACHINE_OFFLINE_TIME,time_difference)
-                if time_difference > (5 * 60):
-                    status = 1
-                    # print(f"Machine {machine_name} status changed to offline.")
-                else:
+                    # status = 0
+                    time_difference = currentTimeStamp - eval(last_machine_production_data.timestamp)
+                    # print (currentTimeStamp,eval(last_machine_production_data.timestamp), MACHINE_OFFLINE_TIME,time_difference)
+                    if time_difference > (5 * 60):
+                        status = 1
+                        # print(f"Machine {machine_name} status changed to offline.")
+                    else:
+                        status = 0
+                        # print(f"Machine {machine_name} status changed to online.")
+
+                else :
                     status = 0
-                    # print(f"Machine {machine_name} status changed to online.")
                
 
                 machine.save()
