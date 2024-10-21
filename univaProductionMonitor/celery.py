@@ -283,7 +283,7 @@ def send_production_updates(message_data):
             'machines': []
         }
 
-        for machine in group.machine_list.all():
+        for machine in group.machine_list.all().order_by('machine_name'):
             machine_json = {
                 'machine_id': machine.machine_id,
                 'machine_name': machine.machine_name,
