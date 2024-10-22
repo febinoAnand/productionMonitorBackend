@@ -137,6 +137,12 @@ class ProductionData(models.Model):
     def __str__(self):
         return str(self.shift_number)
     
+    class Meta:
+        indexes = [
+            models.Index(fields=['production_date']),
+            models.Index(fields=['machine_id']),
+        ]
+    
 
 
 class DashbaordData(models.Model):
