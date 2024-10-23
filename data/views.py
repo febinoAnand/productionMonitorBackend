@@ -939,7 +939,8 @@ class ProductionViewSet(viewsets.ViewSet):
         if existing_data:
             if enable_printing:
                 print("Returning existing production data for the selected date.")
-        check_and_update_production_data(select_date.strftime('%Y-%m-%d'), existing_data.production_data)
+            check_and_update_production_data(select_date.strftime('%Y-%m-%d'), existing_data.production_data)
+            return Response(existing_data.production_data, status=status.HTTP_200_OK)
 
         machine_groups = MachineGroup.objects.all()
         output_json = {

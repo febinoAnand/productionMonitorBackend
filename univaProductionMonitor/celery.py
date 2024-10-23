@@ -97,19 +97,67 @@ def check_and_update_production_data(select_date, output_json):
         select_date = datetime.strptime(select_date, '%Y-%m-%d').date()
         existing_data = ProductionUpdateData.objects.filter(date=select_date).first()
         
+        production_data = {
+            'date': select_date.strftime('%Y-%m-%d'),
+            'machine_groups': []
+        }
+
+        for group in MachineGroup.objects.all():
+            group_json = {
+                'group_name': group.group_name,
+                'machines': []
+            }
+
+            for machine in group.machine_list.all().order_by('machine_name'):
+                machine_json = {
+                    'machine_id': machine.machine_id,
+                    'machine_name': machine.machine_name,
+                    'shifts': []
+                }
+
+                total_shifts = ShiftTiming.objects.all()
+
+                for shift in total_shifts:
+                    if shift.shift_number == 0:
+                        continue
+
+                    shift_json = {
+                        'shift_no': shift.shift_number,
+                        'shift_name': shift.shift_name,
+                        'shift_start_time': shift.start_time.strftime('%H:%M:%S') if shift.start_time else None,
+                        'shift_end_time': shift.end_time.strftime('%H:%M:%S') if shift.end_time else None,
+                        'timing': {},
+                        'total_shift_production_count': 0
+                    }
+
+                    current_shift_production = ProductionData.objects.filter(
+                        production_date=select_date, 
+                        shift_number=shift.shift_number, 
+                        machine_id=machine.machine_id
+                    ).order_by('-production_count')
+
+                    if current_shift_production.exists():
+                        max_production_count = current_shift_production.first().production_count
+                    else:
+                        max_production_count = 0
+                    
+                    shift_json["total_shift_production_count"] = max_production_count
+                    machine_json['shifts'].append(shift_json)
+
+                group_json['machines'].append(machine_json)
+
+            production_data['machine_groups'].append(group_json)
+
         if existing_data:
-            if existing_data.production_data != output_json:
-                existing_data.production_data = output_json
-                existing_data.save()
-            #     print(f"Production data updated for {select_date}.")
-            # else:
-            #     print(f"No changes in production data for {select_date}.")
+            existing_data.production_data = production_data
+            existing_data.save()
+            print(f"Production data updated for {select_date}.")
         else:
             ProductionUpdateData.objects.create(
                 date=select_date,
-                production_data=output_json
+                production_data=production_data
             )
-            # print(f"New production data created for {select_date}.")
+            print(f"New production data created for {select_date}.")
     
     except Exception as e:
         print(f"Error updating production data: {e}")
