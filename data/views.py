@@ -939,7 +939,7 @@ class ProductionViewSet(viewsets.ViewSet):
         if existing_data:
             if enable_printing:
                 print("Returning existing production data for the selected date.")
-            return Response(existing_data.production_data, status=status.HTTP_200_OK)
+        check_and_update_production_data(select_date.strftime('%Y-%m-%d'), existing_data.production_data)
 
         machine_groups = MachineGroup.objects.all()
         output_json = {
@@ -1082,25 +1082,25 @@ class ProductionViewSet(viewsets.ViewSet):
 
             output_json["machine_groups"].append(group_json)
 
-        check_and_update_production_data.delay(select_date.strftime('%Y-%m-%d'), output_json)
+        check_and_update_production_data(select_date.strftime('%Y-%m-%d'), output_json)
 
-        existing_data = ProductionUpdateData.objects.filter(date=select_date).first()
+        # existing_data = ProductionUpdateData.objects.filter(date=select_date).first()
 
-        try:
-            if existing_data:
-                existing_data.production_data = output_json
-                existing_data.save()
-                if enable_printing:
-                    print("Updated existing production data.")
-            else:
-                ProductionUpdateData.objects.create(
-                    date=select_date,
-                    production_data=output_json
-                )
-                if enable_printing:
-                    print("Created new production data.")
-        except Exception as e:
-            return Response({"error": f"Error saving production data: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # try:
+        #     if existing_data:
+        #         existing_data.production_data = output_json
+        #         existing_data.save()
+        #         if enable_printing:
+        #             print("Updated existing production data.")
+        #     else:
+        #         ProductionUpdateData.objects.create(
+        #             date=select_date,
+        #             production_data=output_json
+        #         )
+        #         if enable_printing:
+        #             print("Created new production data.")
+        # except Exception as e:
+        #     return Response({"error": f"Error saving production data: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(output_json, status=status.HTTP_200_OK)
 
